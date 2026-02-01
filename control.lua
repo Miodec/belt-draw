@@ -68,6 +68,25 @@ local function on_drag(player, position)
   else
     storage.drag_last = { x = math.floor(position.x), y = math.floor(position.y) }
     player.print("Drag end set at (" .. math.floor(position.x) .. "," .. math.floor(position.y) .. ")")
+
+    if storage.orientation == nil then
+      -- determine starting orientation based on the second point
+      local dx = math.abs(storage.drag_last.x - storage.drag_start.x)
+      local dy = math.abs(storage.drag_last.y - storage.drag_start.y)
+
+      if dx == dy then
+        player.create_local_flying_text({
+          text = "Equal distance dragged, waiting",
+          create_at_cursor = true
+        })
+      else
+        storage.orientation = dy > dx and "vertical" or "horizontal"
+        player.create_local_flying_text({
+          text = storage.orientation == "vertical" and "Vertical-first" or "Horizontal-first",
+          create_at_cursor = true
+        })
+      end
+    end
   end
 
 
@@ -88,11 +107,22 @@ local function on_drag(player, position)
     storage.drag_rendering = nil
   end
 
+  -- if storage.auto_orientation and storage.drag_last then
+  --   local dx = math.abs(storage.drag_last.x - storage.drag_start.x)
+  --   local dy = math.abs(storage.drag_last.y - storage.drag_start.y)
+  --   if dx ~= dy then
+  --     storage.orientation = dy > dx and "vertical" or "horizontal"
+  --   end
+  -- end
+
   if storage.auto_orientation and storage.drag_last then
     local dx = math.abs(storage.drag_last.x - storage.drag_start.x)
     local dy = math.abs(storage.drag_last.y - storage.drag_start.y)
-    if dx ~= dy then
-      storage.orientation = dy > dx and "vertical" or "horizontal"
+
+    if storage.orientation == "vertical" and dy == 0 then
+      storage.orientation = "horizontal"
+    elseif storage.orientation == "horizontal" and dx == 0 then
+      storage.orientation = "vertical"
     end
   end
 
@@ -193,7 +223,7 @@ end
 
 local function on_flip_orientation(player)
   if player.cursor_stack and player.cursor_stack.valid_for_read and player.cursor_stack.name == "belt-planner" then
-    storage.auto_orientation = false
+    -- storage.auto_orientation = false
     if storage.orientation == "horizontal" then
       storage.orientation = "vertical"
     else
@@ -242,6 +272,7 @@ script.on_event(defines.events.on_player_selected_area, function(event)
   storage.drag_start = nil
   storage.drag_last = nil
   storage.auto_orientation = true
+  storage.orientation = nil
 end)
 
 
