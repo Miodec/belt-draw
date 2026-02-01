@@ -288,59 +288,6 @@ script.on_event("belt-planner-flip-orientation", function(event)
 end)
 
 
-script.on_event(defines.events.on_player_rotated_entity, function(event)
-  local player = game.get_player(event.player_index)
-  if not player then return end
-
-  if player.cursor_stack and player.cursor_stack.valid_for_read and player.cursor_stack.name == "belt-planner" then
-    if storage.auto_orientation then
-      -- Determine current auto orientation and flip it
-      if storage.drag_start and storage.drag_last then
-        local dx = math.abs(storage.drag_last.x - storage.drag_start.x)
-        local dy = math.abs(storage.drag_last.y - storage.drag_start.y)
-        local current_vertical = dy >= dx
-        storage.orientation = current_vertical and "horizontal" or "vertical"
-      else
-        storage.orientation = "vertical"
-      end
-      storage.auto_orientation = false
-    elseif storage.orientation == "horizontal" then
-      storage.orientation = "vertical"
-    else
-      storage.orientation = "horizontal"
-    end
-    player.create_local_flying_text({
-      text = storage.orientation == "vertical" and "Vertical-first" or "Horizontal-first",
-      create_at_cursor = true
-    })
-
-    -- Redraw if currently dragging
-    if storage.drag_start and storage.drag_last then
-      local drag_start = storage.drag_start
-      local drag_current = storage.drag_last
-
-      clear_rendering()
-
-      local renderings = render_line(player,
-        { x = drag_start.x + 0.5, y = drag_start.y + 0.5 },
-        { x = drag_current.x + 0.5, y = drag_current.y + 0.5 }
-      )
-
-      local belt_sprite = rendering.draw_sprite({
-        sprite = "item/transport-belt",
-        target = { x = drag_current.x + 0.5, y = drag_current.y + 0.5 },
-        surface = player.surface,
-        players = { player },
-        time_to_live = 300,
-        x_scale = 0.5,
-        y_scale = 0.5
-      })
-
-      storage.drag_rendering = { renderings[1], renderings[2], belt_sprite }
-    end
-  end
-end)
-
 script.on_event(defines.events.on_built_entity, function(event)
   local entity = event.entity
   local name = entity.name
