@@ -132,7 +132,7 @@ local function on_drag(player, position)
   )
 end
 
-local function on_release(player)
+local function on_release(player, from_alt)
   local drag_start = storage.drag_start
   if not drag_start then
     print("No drag start recorded")
@@ -215,6 +215,28 @@ local function on_release(player)
   end
 
   for _, pos in pairs(belt_positions) do
+    -- Mark existing entities for deconstruction if requested
+    if from_alt then
+      local existing = player.surface.find_entities_filtered({
+        position = { x = pos.x + 0.5, y = pos.y + 0.5 },
+        radius = 0.5,
+        type = "transport-belt"
+      })
+      for _, e in pairs(existing) do
+        e.order_deconstruction(player.force, player)
+      end
+
+      -- Remove existing ghosts
+      local ghosts = player.surface.find_entities_filtered({
+        position = { x = pos.x + 0.5, y = pos.y + 0.5 },
+        radius = 0.5,
+        name = "entity-ghost"
+      })
+      for _, g in pairs(ghosts) do
+        g.destroy()
+      end
+    end
+
     player.surface.create_entity({
       name = "entity-ghost",
       ghost_name = "transport-belt",
@@ -284,6 +306,56 @@ script.on_event(defines.events.on_player_selected_area, function(event)
   storage.orientation = nil
 end)
 
+script.on_event(defines.events.on_player_alt_selected_area, function(event)
+  if event.item ~= "belt-planner" then return end
+
+  print("alt Selected area from (" ..
+    event.area.left_top.x ..
+    "," .. event.area.left_top.y .. ") to (" .. event.area.right_bottom.x .. "," .. event.area.right_bottom.y .. ")")
+
+  local player = game.get_player(event.player_index)
+  if not player then
+    return
+  end
+
+  clear_rendering()
+  on_release(player, true)
+
+  storage.drag_start = nil
+  storage.drag_last = nil
+  storage.auto_orientation = true
+  storage.orientation = nil
+end)
+
+script.on_event(defines.events.on_player_reverse_selected_area, function(event)
+  if event.item ~= "belt-planner" then return end
+
+  print("reverse Selected area from (" ..
+    event.area.left_top.x ..
+    "," .. event.area.left_top.y .. ") to (" .. event.area.right_bottom.x .. "," .. event.area.right_bottom.y .. ")")
+
+  local player = game.get_player(event.player_index)
+  if not player then
+    return
+  end
+
+  -- mark entities for deconstruction
+  local entities = player.surface.find_entities_filtered({
+    area = event.area,
+    type = "transport-belt"
+  })
+  for _, e in pairs(entities) do
+    e.order_deconstruction(player.force, player)
+  end
+
+  local ghosts = player.surface.find_entities_filtered({
+    area = event.area,
+    name = "entity-ghost"
+  })
+  for _, g in pairs(ghosts) do
+    g.destroy()
+  end
+end)
 
 script.on_event("belt-planner-flip-orientation", function(event)
   local player = game.get_player(event.player_index)
