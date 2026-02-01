@@ -27,19 +27,16 @@ script.on_configuration_changed(function()
   storage.orientation = storage.orientation or nil
 end)
 
-local function set_tool(player)
-  local cursor_stack = player.cursor_stack
-  if cursor_stack then
-    if not cursor_stack.valid_for_read or cursor_stack.name == "belt-planner" or player.clear_cursor() then
-      cursor_stack.set_stack({ name = "belt-planner", count = 1 })
-    end
-    if player.controller_type == defines.controllers.character and player.character_build_distance_bonus < 1000000 then
-      player.character_build_distance_bonus = player.character_build_distance_bonus + 1000000
+local function clear_rendering()
+  if storage.drag_rendering then
+    for _, rendering in pairs(storage.drag_rendering) do
+      rendering.destroy()
     end
   end
 end
 
-local function draw_l_line(player, from_pos, to_pos)
+
+local function render_line(player, from_pos, to_pos)
   -- draw 2 lines to make an L shape
   local mid_pos = storage.orientation == "vertical" and { x = from_pos.x, y = to_pos.y } or
       { x = to_pos.x, y = from_pos.y }
@@ -64,49 +61,62 @@ local function draw_l_line(player, from_pos, to_pos)
   storage.drag_rendering = { line1, line2 }
 end
 
-local function clear_rendering()
-  if storage.drag_rendering then
-    for _, rendering in pairs(storage.drag_rendering) do
-      rendering.destroy()
-    end
+local function on_drag(player, position)
+  if storage.drag_start == nil then
+    storage.drag_start = { x = math.floor(position.x), y = math.floor(position.y) }
+    player.print("Drag start set at (" .. math.floor(position.x) .. "," .. math.floor(position.y) .. ")")
+  else
+    storage.drag_last = { x = math.floor(position.x), y = math.floor(position.y) }
+    player.print("Drag end set at (" .. math.floor(position.x) .. "," .. math.floor(position.y) .. ")")
   end
-end
 
--- Handle selection area (drag and release)
-script.on_event(defines.events.on_player_selected_area, function(event)
-  if event.item ~= "belt-planner" then return end
-
-  print("Selected area from (" ..
-    event.area.left_top.x ..
-    "," .. event.area.left_top.y .. ") to (" .. event.area.right_bottom.x .. "," .. event.area.right_bottom.y .. ")")
 
   local drag_start = storage.drag_start
-  if not drag_start then
-    print("No drag start recorded for player " .. event.player_index)
-    return
-  end
-  storage.drag_start = nil
-
-
-  local player = game.get_player(event.player_index)
-  if not player then
-    return
-  end
-
-  print("Start position recorded at (" .. drag_start.x .. "," .. drag_start.y .. ")")
-
-  -- compare drag_start to area left top and right bottom to grab the start and endpoint of the drag
   local start_x = math.floor(drag_start.x)
   local start_y = math.floor(drag_start.y)
+  local end_x = math.floor(position.x)
+  local end_y = math.floor(position.y)
+
+  if storage.drag_rendering == nil then
+    storage.drag_rendering = {}
+  end
+
+  if storage.drag_rendering then
+    for _, rendering_id in pairs(storage.drag_rendering) do
+      rendering_id.destroy()
+    end
+    storage.drag_rendering = nil
+  end
+
+  if storage.auto_orientation and storage.drag_last then
+    local dx = math.abs(storage.drag_last.x - storage.drag_start.x)
+    local dy = math.abs(storage.drag_last.y - storage.drag_start.y)
+    if dx ~= dy then
+      storage.orientation = dy > dx and "vertical" or "horizontal"
+    end
+  end
+
+  render_line(player,
+    { x = start_x + 0.5, y = start_y + 0.5 },
+    { x = end_x + 0.5, y = end_y + 0.5 }
+  )
+end
+
+local function on_release(player)
+  local drag_start = storage.drag_start
+  if not drag_start then
+    print("No drag start recorded")
+    return
+  end
+  local start_x = math.floor(storage.drag_start.x)
+  local start_y = math.floor(storage.drag_start.y)
 
   local end_x = math.floor(storage.drag_last.x)
   local end_y = math.floor(storage.drag_last.y)
 
   if end_x == start_x and end_y == start_y then return end
 
-  clear_rendering()
 
-  print("Placing ghosts from (" .. start_x .. "," .. start_y .. ") to (" .. end_x .. "," .. end_y .. ")")
   local belt_positions = {}
 
   -- Determine orientation based on longer side if auto
@@ -179,8 +189,59 @@ script.on_event(defines.events.on_player_selected_area, function(event)
       player = player,
     })
   end
+end
 
-  storage.orientation = "auto"
+local function on_flip_orientation(player)
+  if player.cursor_stack and player.cursor_stack.valid_for_read and player.cursor_stack.name == "belt-planner" then
+    storage.auto_orientation = false
+    if storage.orientation == "horizontal" then
+      storage.orientation = "vertical"
+    else
+      storage.orientation = "horizontal"
+    end
+    -- player.create_local_flying_text({
+    --   text = storage.orientation == "vertical" and "Vertical-first" or "Horizontal-first",
+    --   create_at_cursor = true
+    -- })
+    clear_rendering()
+    render_line(player,
+      { x = storage.drag_start.x + 0.5, y = storage.drag_start.y + 0.5 },
+      { x = storage.drag_last.x + 0.5, y = storage.drag_last.y + 0.5 }
+    )
+  end
+end
+
+local function set_tool(player)
+  local cursor_stack = player.cursor_stack
+  if cursor_stack then
+    if not cursor_stack.valid_for_read or cursor_stack.name == "belt-planner" or player.clear_cursor() then
+      cursor_stack.set_stack({ name = "belt-planner", count = 1 })
+    end
+    if player.controller_type == defines.controllers.character and player.character_build_distance_bonus < 1000000 then
+      player.character_build_distance_bonus = player.character_build_distance_bonus + 1000000
+    end
+  end
+end
+
+-- Handle selection area (drag and release)
+script.on_event(defines.events.on_player_selected_area, function(event)
+  if event.item ~= "belt-planner" then return end
+
+  print("Selected area from (" ..
+    event.area.left_top.x ..
+    "," .. event.area.left_top.y .. ") to (" .. event.area.right_bottom.x .. "," .. event.area.right_bottom.y .. ")")
+
+  local player = game.get_player(event.player_index)
+  if not player then
+    return
+  end
+
+  clear_rendering()
+  on_release(player)
+
+  storage.drag_start = nil
+  storage.drag_last = nil
+  storage.auto_orientation = true
 end)
 
 
@@ -188,33 +249,7 @@ script.on_event("bp-flip-knee", function(event)
   local player = game.get_player(event.player_index)
   if not player then return end
 
-  if player.cursor_stack and player.cursor_stack.valid_for_read and player.cursor_stack.name == "belt-planner" then
-    if storage.auto_orientation then
-      -- Determine current auto orientation and flip it
-      if storage.drag_start and storage.drag_last then
-        local dx = math.abs(storage.drag_last.x - storage.drag_start.x)
-        local dy = math.abs(storage.drag_last.y - storage.drag_start.y)
-        local current_vertical = dy >= dx
-        storage.orientation = current_vertical and "horizontal" or "vertical"
-      else
-        storage.orientation = "vertical"
-      end
-      storage.auto_orientation = false
-    elseif storage.orientation == "horizontal" then
-      storage.orientation = "vertical"
-    else
-      storage.orientation = "horizontal"
-    end
-    player.create_local_flying_text({
-      text = storage.orientation == "vertical" and "Vertical-first" or "Horizontal-first",
-      create_at_cursor = true
-    })
-    clear_rendering()
-    draw_l_line(player,
-      { x = storage.drag_start.x + 0.5, y = storage.drag_start.y + 0.5 },
-      { x = storage.drag_last.x + 0.5, y = storage.drag_last.y + 0.5 }
-    )
-  end
+  on_flip_orientation(player)
 end)
 
 
@@ -251,7 +286,7 @@ script.on_event(defines.events.on_player_rotated_entity, function(event)
 
       clear_rendering()
 
-      local renderings = draw_l_line(player,
+      local renderings = render_line(player,
         { x = drag_start.x + 0.5, y = drag_start.y + 0.5 },
         { x = drag_current.x + 0.5, y = drag_current.y + 0.5 }
       )
@@ -289,42 +324,5 @@ script.on_event(defines.events.on_built_entity, function(event)
   end
   set_tool(player)
 
-  if storage.drag_start == nil then
-    storage.drag_start = { x = math.floor(position.x), y = math.floor(position.y) }
-    player.print("Drag start set at (" .. math.floor(position.x) .. "," .. math.floor(position.y) .. ")")
-  else
-    storage.drag_last = { x = math.floor(position.x), y = math.floor(position.y) }
-    player.print("Drag end set at (" .. math.floor(position.x) .. "," .. math.floor(position.y) .. ")")
-  end
-
-
-  local drag_start = storage.drag_start
-  local start_x = math.floor(drag_start.x)
-  local start_y = math.floor(drag_start.y)
-  local end_x = math.floor(position.x)
-  local end_y = math.floor(position.y)
-
-  if storage.drag_rendering == nil then
-    storage.drag_rendering = {}
-  end
-
-  if storage.drag_rendering then
-    for _, rendering_id in pairs(storage.drag_rendering) do
-      rendering_id.destroy()
-    end
-    storage.drag_rendering = nil
-  end
-
-  if storage.auto_orientation and storage.drag_last then
-    local dx = math.abs(storage.drag_last.x - storage.drag_start.x)
-    local dy = math.abs(storage.drag_last.y - storage.drag_start.y)
-    if dx ~= dy then
-      storage.orientation = dy > dx and "vertical" or "horizontal"
-    end
-  end
-
-  draw_l_line(player,
-    { x = start_x + 0.5, y = start_y + 0.5 },
-    { x = end_x + 0.5, y = end_y + 0.5 }
-  )
+  on_drag(player, position)
 end)
