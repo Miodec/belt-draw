@@ -222,23 +222,27 @@ local function on_release(player)
 end
 
 local function on_flip_orientation(player)
-  if player.cursor_stack and player.cursor_stack.valid_for_read and player.cursor_stack.name == "belt-planner" then
-    -- storage.auto_orientation = false
-    if storage.orientation == "horizontal" then
-      storage.orientation = "vertical"
-    else
-      storage.orientation = "horizontal"
-    end
-    -- player.create_local_flying_text({
-    --   text = storage.orientation == "vertical" and "Vertical-first" or "Horizontal-first",
-    --   create_at_cursor = true
-    -- })
-    clear_rendering()
-    render_line(player,
-      { x = storage.drag_start.x + 0.5, y = storage.drag_start.y + 0.5 },
-      { x = storage.drag_last.x + 0.5, y = storage.drag_last.y + 0.5 }
-    )
+  if player.cursor_stack == nil then return end
+  if player.cursor_stack.valid_for_read == false then return end
+  if player.cursor_stack.name ~= "belt-planner" then return end
+
+  if storage.drag_start == nil or storage.drag_last == nil then return end
+
+  -- storage.auto_orientation = false
+  if storage.orientation == "horizontal" then
+    storage.orientation = "vertical"
+  else
+    storage.orientation = "horizontal"
   end
+  -- player.create_local_flying_text({
+  --   text = storage.orientation == "vertical" and "Vertical-first" or "Horizontal-first",
+  --   create_at_cursor = true
+  -- })
+  clear_rendering()
+  render_line(player,
+    { x = storage.drag_start.x + 0.5, y = storage.drag_start.y + 0.5 },
+    { x = storage.drag_last.x + 0.5, y = storage.drag_last.y + 0.5 }
+  )
 end
 
 local function set_tool(player)
