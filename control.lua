@@ -216,27 +216,41 @@ local function on_release(player, from_alt)
 
   for _, pos in pairs(belt_positions) do
     -- Mark existing entities for deconstruction if requested
+    local existing = player.surface.find_entities_filtered({
+      position = { x = pos.x + 0.5, y = pos.y + 0.5 },
+      radius = 0.5,
+    })[1]
+
+    local ghost = player.surface.find_entities_filtered({
+      position = { x = pos.x + 0.5, y = pos.y + 0.5 },
+      radius = 0.5,
+      name = "entity-ghost"
+    })[1]
     if from_alt then
-      local existing = player.surface.find_entities_filtered({
-        position = { x = pos.x + 0.5, y = pos.y + 0.5 },
-        radius = 0.5,
-        type = "transport-belt"
-      })
       for _, e in pairs(existing) do
         e.order_deconstruction(player.force, player)
       end
 
       -- Remove existing ghosts
-      local ghosts = player.surface.find_entities_filtered({
-        position = { x = pos.x + 0.5, y = pos.y + 0.5 },
-        radius = 0.5,
-        name = "entity-ghost"
-      })
-      for _, g in pairs(ghosts) do
-        g.destroy()
+
+      if ghost.ghost_name == "transport-belt" then
+        ghost.destroy()
       end
     end
 
+    -- if existing and existing.type == "transport-belt" then
+    --   existing.order_deconstruction(player.force, player)
+    --   player.surface.create_entity({
+    --     name = "entity-ghost",
+    --     ghost_name = "transport-belt",
+    --     position = { x = pos.x + 0.5, y = pos.y + 0.5 },
+    --     direction = pos.direction,
+    --     force = player.force,
+    --     player = player,
+    --   })
+    -- end
+
+    -- if existing == nil and ghost == nil then
     player.surface.create_entity({
       name = "entity-ghost",
       ghost_name = "transport-belt",
@@ -244,7 +258,9 @@ local function on_release(player, from_alt)
       direction = pos.direction,
       force = player.force,
       player = player,
+      fast_replace = true
     })
+    -- end
   end
 end
 
