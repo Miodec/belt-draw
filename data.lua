@@ -48,7 +48,7 @@ data:extend({
   },
   {
     type = "custom-input",
-    name = "bp-flip-knee",
+    name = "belt-planner-flip-orientation",
     key_sequence = "R",
     order = "a[mod]-b[belt-planner-flip]",
   },

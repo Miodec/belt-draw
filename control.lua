@@ -245,7 +245,7 @@ script.on_event(defines.events.on_player_selected_area, function(event)
 end)
 
 
-script.on_event("bp-flip-knee", function(event)
+script.on_event("belt-planner-flip-orientation", function(event)
   local player = game.get_player(event.player_index)
   if not player then return end
 
