@@ -138,6 +138,11 @@ local function on_release(player)
     print("No drag start recorded")
     return
   end
+  if not storage.drag_last then
+    print("No drag end recorded")
+    return
+  end
+
   local start_x = math.floor(storage.drag_start.x)
   local start_y = math.floor(storage.drag_start.y)
 
