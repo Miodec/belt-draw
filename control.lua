@@ -171,7 +171,7 @@ local function on_release(player)
         local is_last = (y == end_y) and has_horizontal
         table.insert(belt_positions, { x = start_x, y = y, direction = is_last and x_dir or y_dir })
       end
-    else
+    elseif start_y > end_y then
       for y = start_y, end_y, -1 do
         local is_last = (y == end_y) and has_horizontal
         table.insert(belt_positions, { x = start_x, y = y, direction = is_last and x_dir or y_dir })
@@ -181,7 +181,7 @@ local function on_release(player)
       for x = start_x, end_x do
         table.insert(belt_positions, { x = x, y = end_y, direction = x_dir })
       end
-    else
+    elseif start_x > end_x then
       for x = start_x, end_x, -1 do
         table.insert(belt_positions, { x = x, y = end_y, direction = x_dir })
       end
@@ -197,7 +197,7 @@ local function on_release(player)
         local is_last = (x == end_x) and has_vertical
         table.insert(belt_positions, { x = x, y = start_y, direction = is_last and y_dir or x_dir })
       end
-    else
+    elseif start_x > end_x then
       for x = start_x, end_x, -1 do
         local is_last = (x == end_x) and has_vertical
         table.insert(belt_positions, { x = x, y = start_y, direction = is_last and y_dir or x_dir })
@@ -207,7 +207,7 @@ local function on_release(player)
       for y = start_y, end_y do
         table.insert(belt_positions, { x = end_x, y = y, direction = y_dir })
       end
-    else
+    elseif start_y > end_y then
       for y = start_y, end_y, -1 do
         table.insert(belt_positions, { x = end_x, y = y, direction = y_dir })
       end
