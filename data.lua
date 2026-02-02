@@ -113,6 +113,12 @@ data:extend({
     order = "a[mod]-b[belt-planner-flip]",
   },
   {
+    type = "custom-input",
+    name = "belt-planner-anchor",
+    key_sequence = "R",
+    order = "a[mod]-b[belt-planner-anchor]",
+  },
+  {
     type = "transport-belt",
     name = "belt-planner-dummy-transport-belt",
     icon = "__base__/graphics/icons/transport-belt.png",
