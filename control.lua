@@ -41,6 +41,25 @@ local function clear_rendering()
   end
 end
 
+local function is_bp_tool(tool_name)
+  return tool_name == "belt-planner" or tool_name == "belt-planner-drag"
+end
+
+local function is_holding_bp_tool(player)
+  local cursor_stack = player.cursor_stack
+  if cursor_stack == nil then return false end
+  if not cursor_stack.valid_for_read then return false end
+  if not is_bp_tool(cursor_stack.name) then return false end
+  return true
+end
+
+
+local function is_bp_entity(entity)
+  if entity.type == "entity-ghost" then
+    return entity.ghost_name == "bp-transport-belt" or entity.ghost_name == "bp-dummy-entity"
+  end
+  return entity.name == "bp-transport-belt" or entity.name == "bp-dummy-entity"
+end
 
 local function render_line(player, from_pos, to_pos)
   -- draw 2 lines to make an L shape
@@ -277,9 +296,7 @@ local function on_release(player, from_alt)
 end
 
 local function on_flip_orientation(player)
-  if player.cursor_stack == nil then return end
-  if player.cursor_stack.valid_for_read == false then return end
-  if player.cursor_stack.name ~= "belt-planner" and player.cursor_stack.name ~= "belt-planner-drag" then return end
+  if not is_holding_bp_tool(player) then return end
 
   if storage.drag_start == nil or storage.drag_last == nil then return end
 
@@ -318,7 +335,7 @@ end
 
 -- Handle selection area (drag and release)
 script.on_event(defines.events.on_player_selected_area, function(event)
-  if event.item ~= "belt-planner" and event.item ~= "belt-planner-drag" then return end
+  if not is_bp_tool(event.item) then return end
 
   print("Selected area from (" ..
     event.area.left_top.x ..
@@ -342,7 +359,7 @@ script.on_event(defines.events.on_player_selected_area, function(event)
 end)
 
 script.on_event(defines.events.on_player_alt_selected_area, function(event)
-  if event.item ~= "belt-planner" and event.item ~= "belt-planner-drag" then return end
+  if not is_bp_tool(event.item) then return end
 
   print("alt Selected area from (" ..
     event.area.left_top.x ..
@@ -366,7 +383,7 @@ script.on_event(defines.events.on_player_alt_selected_area, function(event)
 end)
 
 script.on_event(defines.events.on_player_reverse_selected_area, function(event)
-  if event.item ~= "belt-planner" and event.item ~= "belt-planner-drag" then return end
+  if not is_bp_tool(event.item) then return end
 
   print("reverse Selected area from (" ..
     event.area.left_top.x ..
@@ -408,10 +425,7 @@ script.on_event(defines.events.on_pre_build, function(event)
     return
   end
 
-  local cursor_stack = player.cursor_stack
-  if cursor_stack == nil then return end
-  if not cursor_stack.valid_for_read then return end
-  if cursor_stack.name ~= "belt-planner" and cursor_stack.name ~= "belt-planner-drag" then return end
+  if not is_holding_bp_tool(player) then return end
 
   storage.dragging = true
   storage.single_direction = event.direction or defines.direction.north
@@ -420,22 +434,12 @@ script.on_event(defines.events.on_pre_build, function(event)
 end)
 
 script.on_event(defines.events.on_built_entity, function(event)
-  local entity = event.entity
-  local name = entity.name
-  if name == "entity-ghost" then
-    name = entity.ghost_name
-  end
-
-  if name ~= "bp-transport-belt" and name ~= "bp-dummy-entity" then return end
-
+  if not is_bp_entity(event.entity) then return end
   local player = game.get_player(event.player_index)
   if not player then
     return
   end
 
-  if storage.dragging == true then
-    set_tool(player)
-    entity.destroy()
-    return
-  end
+  set_tool(player)
+  event.entity.destroy()
 end)
