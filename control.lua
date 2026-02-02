@@ -72,9 +72,9 @@ local function set_tool(player)
         cursor_stack.set_stack({ name = "belt-planner-preview", count = 1 })
       end
     end
-    if player.controller_type == defines.controllers.character and player.character_build_distance_bonus < 1000000 then
-      player.character_build_distance_bonus = player.character_build_distance_bonus + 1000000
-    end
+    -- if player.controller_type == defines.controllers.character and player.character_build_distance_bonus < 1000000 then
+    --   player.character_build_distance_bonus = player.character_build_distance_bonus + 1000000
+    -- end
   end
 end
 
