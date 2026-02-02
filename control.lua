@@ -1,7 +1,7 @@
 local Segment = require("segment")
 
 ---@class StorageData
----@field drag_rendering {[1]: LuaRenderObject, [2]: LuaRenderObject, [3]: LuaRenderObject?}?
+---@field rendering_target LuaEntity?
 ---@field auto_orientation boolean
 ---@field starting_direction defines.direction?
 ---@field dragging boolean
@@ -15,7 +15,7 @@ storage = storage
 
 -- Initialize global state
 script.on_init(function()
-  storage.drag_rendering = nil
+  storage.rendering_target = nil
   storage.auto_orientation = true
   storage.starting_direction = nil
   storage.dragging = false
@@ -25,7 +25,7 @@ script.on_init(function()
 end)
 
 script.on_configuration_changed(function()
-  storage.drag_rendering = storage.drag_rendering or nil
+  storage.rendering_target = storage.rendering_target or nil
   if storage.auto_orientation == nil then
     storage.auto_orientation = true
   end
@@ -44,11 +44,9 @@ local function get_current_segment()
 end
 
 local function clear_rendering()
-  if storage.drag_rendering then
-    for _, rendering in pairs(storage.drag_rendering) do
-      rendering.destroy()
-    end
-    storage.drag_rendering = {}
+  if storage.rendering_target ~= nil then
+    storage.rendering_target.destroy()
+    storage.rendering_target = nil
   end
 end
 
@@ -94,26 +92,34 @@ local function render_line(player)
   if current_segment == nil then return end
   local centered_positions = current_segment:get_centered_positions()
   local mid_pos = current_segment:get_centered_midpoint()
-  local line1 = rendering.draw_line({
+  rendering.draw_line({
     color = { r = 1, g = 1, b = 1, a = 0.1 },
     width = 1,
-    from = centered_positions.from,
-    to = mid_pos,
+    from = {
+      entity = storage.rendering_target,
+      offset = { x = centered_positions.from.x - storage.rendering_target.position.x, y = centered_positions.from.y - storage.rendering_target.position.y },
+    },
+    to = {
+      entity = storage.rendering_target,
+      offset = { x = mid_pos.x - storage.rendering_target.position.x, y = mid_pos.y - storage.rendering_target.position.y },
+    },
     surface = player.surface,
     players = { player },
-    -- time_to_live = 300
   })
-  local line2 = rendering.draw_line({
+  rendering.draw_line({
     color = { r = 1, g = 1, b = 1, a = 0.1 },
     width = 1,
-    from = mid_pos,
-    to = centered_positions.to,
+    from = {
+      entity = storage.rendering_target,
+      offset = { x = mid_pos.x - storage.rendering_target.position.x, y = mid_pos.y - storage.rendering_target.position.y },
+    },
+    to = {
+      entity = storage.rendering_target,
+      offset = { x = centered_positions.to.x - storage.rendering_target.position.x, y = centered_positions.to.y - storage.rendering_target.position.y },
+    },
     surface = player.surface,
     players = { player },
-    -- time_to_live = 300
   })
-  table.insert(storage.drag_rendering, line1)
-  table.insert(storage.drag_rendering, line2)
 end
 
 local function place_ghost(player, item, pos)
@@ -134,16 +140,32 @@ local function visualise_current_segment(player)
 
   local elements = current_segment:get_elements_with_direction()
 
+  if storage.rendering_target == nil then
+    storage.rendering_target = player.surface.create_entity({
+      name = "belt-planner-dummy-entity",
+      position = { x = current_segment.from.x + 0.5, y = current_segment.from.y + 0.5 },
+      force = player.force,
+      player = player,
+    })
+  end
+
+  local rendering_target_pos = storage.rendering_target.position
+  local surface = player.surface
+
   for _, pos in pairs(elements) do
-    table.insert(storage.drag_rendering, rendering.draw_sprite({
+    local sprite = {
       sprite = "belt-planner-chevron",
       x_scale = 0.25,
       y_scale = 0.25,
-      target = { x = pos.x + 0.5, y = pos.y + 0.5 },
-      surface = player.surface,
+      target = {
+        entity = storage.rendering_target,
+        offset = { x = pos.x + 0.5 - rendering_target_pos.x, y = pos.y + 0.5 - rendering_target_pos.y },
+      },
+      surface = surface,
       players = { player },
       orientation = pos.direction / 16 - 0.25,
-    }))
+    }
+    rendering.draw_sprite(sprite)
   end
   render_line(player)
 end
@@ -259,10 +281,6 @@ local function on_drag(player, position)
         create_at_cursor = true
       })
     end
-  end
-
-  if storage.drag_rendering == nil then
-    storage.drag_rendering = {}
   end
 
   if storage.auto_orientation then
