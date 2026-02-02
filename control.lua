@@ -87,35 +87,37 @@ local function render_line(player, from_pos, to_pos)
 end
 
 local function on_drag(player, position)
-  if storage.drag_start == nil or storage.drag_start.x == nil then
+  local drag_start = storage.drag_start
+
+  if drag_start == nil or drag_start.x == nil then
     storage.drag_start = { x = math.floor(position.x), y = math.floor(position.y) }
     print("Drag start set at (" .. math.floor(position.x) .. "," .. math.floor(position.y) .. ")")
-  else
-    storage.drag_last = { x = math.floor(position.x), y = math.floor(position.y) }
-    print("Drag end set at (" .. math.floor(position.x) .. "," .. math.floor(position.y) .. ")")
+    return
+  end
 
-    if storage.orientation == nil then
-      -- determine starting orientation based on the second point
-      local dx = math.abs(storage.drag_last.x - storage.drag_start.x)
-      local dy = math.abs(storage.drag_last.y - storage.drag_start.y)
+  storage.drag_last = { x = math.floor(position.x), y = math.floor(position.y) }
+  print("Drag last set at (" .. math.floor(position.x) .. "," .. math.floor(position.y) .. ")")
 
-      if dx == dy then
-        player.create_local_flying_text({
-          text = "Equal distance dragged, waiting",
-          create_at_cursor = true
-        })
-      else
-        storage.orientation = dy > dx and "vertical" or "horizontal"
-        player.create_local_flying_text({
-          text = storage.orientation == "vertical" and "Vertical-first" or "Horizontal-first",
-          create_at_cursor = true
-        })
-      end
+  if storage.orientation == nil then
+    -- determine starting orientation based on the second point
+    local dx = math.abs(storage.drag_last.x - storage.drag_start.x)
+    local dy = math.abs(storage.drag_last.y - storage.drag_start.y)
+
+    if dx == dy then
+      player.create_local_flying_text({
+        text = "Equal distance dragged, waiting",
+        create_at_cursor = true
+      })
+    else
+      storage.orientation = dy > dx and "vertical" or "horizontal"
+      player.create_local_flying_text({
+        text = storage.orientation == "vertical" and "Vertical-first" or "Horizontal-first",
+        create_at_cursor = true
+      })
     end
   end
 
 
-  local drag_start = storage.drag_start
   local start_x = math.floor(drag_start.x)
   local start_y = math.floor(drag_start.y)
   local end_x = math.floor(position.x)
@@ -124,21 +126,6 @@ local function on_drag(player, position)
   if storage.drag_rendering == nil then
     storage.drag_rendering = {}
   end
-
-  if storage.drag_rendering then
-    for _, rendering_id in pairs(storage.drag_rendering) do
-      rendering_id.destroy()
-    end
-    storage.drag_rendering = nil
-  end
-
-  -- if storage.auto_orientation and storage.drag_last then
-  --   local dx = math.abs(storage.drag_last.x - storage.drag_start.x)
-  --   local dy = math.abs(storage.drag_last.y - storage.drag_start.y)
-  --   if dx ~= dy then
-  --     storage.orientation = dy > dx and "vertical" or "horizontal"
-  --   end
-  -- end
 
   if storage.auto_orientation and storage.drag_last then
     local dx = math.abs(storage.drag_last.x - storage.drag_start.x)
@@ -151,6 +138,7 @@ local function on_drag(player, position)
     end
   end
 
+  clear_rendering()
   render_line(player,
     { x = start_x + 0.5, y = start_y + 0.5 },
     { x = end_x + 0.5, y = end_y + 0.5 }
