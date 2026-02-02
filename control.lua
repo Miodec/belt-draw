@@ -175,7 +175,7 @@ local function on_release(player, from_alt)
 
   if end_x == start_x and end_y == start_y then return end
 
-
+  ---@type {x: number, y: number, direction: defines.direction}[]
   local belt_positions = {}
 
   -- Determine orientation based on longer side if auto
@@ -239,43 +239,30 @@ local function on_release(player, from_alt)
   end
 
   for _, pos in pairs(belt_positions) do
-    -- Mark existing entities for deconstruction if requested
     local existing = player.surface.find_entities_filtered({
       position = { x = pos.x + 0.5, y = pos.y + 0.5 },
       radius = 0.5,
     })[1]
 
-    local ghost = player.surface.find_entities_filtered({
-      position = { x = pos.x + 0.5, y = pos.y + 0.5 },
-      radius = 0.5,
-      name = "entity-ghost"
-    })[1]
-    if from_alt then
-      for _, e in pairs(existing) do
-        e.order_deconstruction(player.force, player)
-      end
+    local place = false
 
-      -- Remove existing ghosts
-
-      if ghost.ghost_name == "transport-belt" then
-        ghost.destroy()
+    if existing ~= nil then
+      --something is there
+      if existing.type == "entity-ghost" then
+        if existing.ghost_name == "transport-belt" then
+          place = true
+        end
+      else
+        if from_alt then
+          place = true
+        end
       end
+    else
+      --nothing is there
+      place = true
     end
 
-    -- if existing and existing.type == "transport-belt" then
-    --   existing.order_deconstruction(player.force, player)
-    --   player.surface.create_entity({
-    --     name = "entity-ghost",
-    --     ghost_name = "transport-belt",
-    --     position = { x = pos.x + 0.5, y = pos.y + 0.5 },
-    --     direction = pos.direction,
-    --     force = player.force,
-    --     player = player,
-    --   })
-    -- end
-
-
-    if (existing == nil and ghost == nil) or ((existing ~= nil and existing.type == "transport-belt") or (ghost ~= nil and ghost.ghost_name == "transport-belt")) then
+    if place then
       player.surface.create_entity({
         name = "entity-ghost",
         ghost_name = "transport-belt",
@@ -426,7 +413,6 @@ script.on_event(defines.events.on_pre_build, function(event)
   if not cursor_stack.valid_for_read then return end
   if cursor_stack.name ~= "belt-planner" and cursor_stack.name ~= "belt-planner-drag" then return end
 
-  -- is building with the tool
   storage.dragging = true
   storage.single_direction = event.direction or defines.direction.north
   set_tool(player)
@@ -442,9 +428,13 @@ script.on_event(defines.events.on_built_entity, function(event)
 
   if name ~= "bp-transport-belt" and name ~= "bp-dummy-entity" then return end
 
+  local player = game.get_player(event.player_index)
+  if not player then
+    return
+  end
+
   if storage.dragging == true then
-    set_tool(game.get_player(event.player_index))
-    local position, surface, direction = entity.position, entity.surface, entity.direction
+    set_tool(player)
     entity.destroy()
     return
   end
