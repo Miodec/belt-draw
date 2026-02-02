@@ -181,12 +181,12 @@ local function place_from_inventory(player, item, pos)
   local inventory = player.get_inventory(defines.inventory.character_main)
   local count = inventory.get_item_count(item)
 
-  local dx = player.position.x - (pos.x + 0.5)
-  local dy = player.position.y - (pos.y + 0.5)
+  local dx = player.position.x - pos.x
+  local dy = player.position.y - pos.y
   local distance_squared = dx * dx + dy * dy
   local reach_squared = player.build_distance * player.build_distance
 
-  local can_reach = distance_squared <= reach_squared
+  local can_reach = distance_squared < reach_squared
 
   if count > 0 and can_reach then
     player.surface.create_entity({
