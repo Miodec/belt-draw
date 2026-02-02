@@ -162,6 +162,37 @@ local function on_drag(player, position)
   )
 end
 
+local function place_ghost(player, item, pos)
+  player.surface.create_entity({
+    name = "entity-ghost",
+    ghost_name = item,
+    position = { x = pos.x + 0.5, y = pos.y + 0.5 },
+    direction = pos.direction,
+    force = player.force,
+    player = player,
+    fast_replace = true
+  })
+end
+
+local function place_from_inventory(player, item, pos)
+  local inventory = player.get_inventory(defines.inventory.character_main)
+  local count = inventory.get_item_count(item)
+
+  if count > 0 then
+    player.surface.create_entity({
+      name = item,
+      position = { x = pos.x + 0.5, y = pos.y + 0.5 },
+      direction = pos.direction,
+      force = player.force,
+      player = player,
+      fast_replace = true
+    })
+    inventory.remove({ name = item, count = 1 })
+  else
+    place_ghost(player, item, pos)
+  end
+end
+
 --@param player LuaPlayer
 --@param mode "normal"|"alt"
 --@param pos {x: number, y: number, direction: defines.direction}
@@ -171,60 +202,22 @@ local function place(player, mode, pos)
     radius = 0.5,
   })[1]
 
-  local place = false
+  local item = "transport-belt"
 
   if existing ~= nil then
     --something is there
     if existing.type == "entity-ghost" then
       if existing.ghost_name == "transport-belt" then
-        place = true
+        place_from_inventory(player, item, pos)
       end
     else
-      if mode == "alt" then
-        place = true
+      if existing.name == "transport-belt" or mode == "alt" then
+        place_from_inventory(player, item, pos)
       end
     end
   else
     --nothing is there
-    place = true
-  end
-
-  -- local inventory = player.get_inventory(defines.inventory.character_main)
-  -- local count = inventory.get_item_count("transport-belt")
-
-  -- if place then
-  --   if count > 0 then
-  --     player.surface.create_entity({
-  --       name = "transport-belt",
-  --       position = { x = pos.x + 0.5, y = pos.y + 0.5 },
-  --       direction = pos.direction,
-  --       force = player.force,
-  --       player = player,
-  --       fast_replace = true
-  --     })
-  --     inventory.remove({ name = "transport-belt", count = 1 })
-  --   else
-  --     player.surface.create_entity({
-  --       name = "entity-ghost",
-  --       ghost_name = "transport-belt",
-  --       position = { x = pos.x + 0.5, y = pos.y + 0.5 },
-  --       direction = pos.direction,
-  --       force = player.force,
-  --       player = player,
-  --       fast_replace = true
-  --     })
-  --   end
-  -- end
-  if place then
-    player.surface.create_entity({
-      name = "entity-ghost",
-      ghost_name = "transport-belt",
-      position = { x = pos.x + 0.5, y = pos.y + 0.5 },
-      direction = pos.direction,
-      force = player.force,
-      player = player,
-      fast_replace = true
-    })
+    place_from_inventory(player, item, pos)
   end
 end
 
