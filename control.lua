@@ -162,14 +162,16 @@ local function on_drag(player, position)
   )
 end
 
-local function on_release_cleanup(player)
+local function on_release_cleanup(player, setTool)
   storage.drag_start = nil
   storage.drag_last = nil
   storage.auto_orientation = true
   storage.orientation = nil
   storage.dragging = false
   clear_rendering()
-  set_tool(player)
+  if setTool == nil or setTool == true then
+    set_tool(player)
+  end
 end
 
 --@param player LuaPlayer
@@ -393,6 +395,18 @@ script.on_event(defines.events.on_player_reverse_selected_area, function(event)
   end
 
   on_release(player, event, "reverse")
+end)
+
+script.on_event(defines.events.on_player_cursor_stack_changed, function(event)
+  local player = game.get_player(event.player_index)
+  if not player then
+    return
+  end
+
+  if not is_holding_bp_tool(player) then
+    -- clear any ongoing drag state
+    on_release_cleanup(player, false)
+  end
 end)
 
 script.on_event("belt-planner-flip-orientation", function(event)
