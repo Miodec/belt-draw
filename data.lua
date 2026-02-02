@@ -1,5 +1,9 @@
 data:extend({
   {
+    type = "collision-layer",
+    name = "belt-planner-layer",
+  },
+  {
     type = "selection-tool",
     name = "belt-planner",
     icon = "__base__/graphics/icons/transport-belt.png",
@@ -25,7 +29,45 @@ data:extend({
     flags = { "only-in-cursor", "spawnable" },
     hidden = true,
     draw_label_for_cursor_render = true,
-    place_result = "bp-dummy-entity"
+    place_result = "bp-transport-belt",
+    collision_mask = {
+      layers = {
+        ["belt-planner-layer"] = true
+      }
+    }
+  },
+  {
+    type = "selection-tool",
+    name = "belt-planner-drag",
+    icon = "__base__/graphics/icons/transport-belt.png",
+    icon_size = 64,
+    stack_size = 1,
+    subgroup = "tool",
+    order = "c[automated-construction]-d[belt-planner]",
+    select = {
+      mode = "nothing",
+      border_color = { a = 0 },
+      cursor_box_type = "not-allowed",
+    },
+    alt_select = {
+      mode = "nothing",
+      border_color = { a = 0 },
+      cursor_box_type = "not-allowed",
+    },
+    reverse_select = {
+      mode = "deconstruct",
+      border_color = { a = 0, r = 1 },
+      cursor_box_type = "not-allowed",
+    },
+    flags = { "only-in-cursor", "spawnable" },
+    hidden = true,
+    draw_label_for_cursor_render = true,
+    place_result = "bp-dummy-entity",
+    collision_mask = {
+      layers = {
+        ["belt-planner-layer"] = true
+      }
+    }
   },
   {
     type = "shortcut",
@@ -57,6 +99,18 @@ data:extend({
     key_sequence = "R",
     order = "a[mod]-b[belt-planner-flip]",
   },
+  {
+    type = "transport-belt",
+    name = "bp-transport-belt",
+    icon = "__base__/graphics/icons/transport-belt.png",
+    icon_size = 64,
+    flags = { "placeable-neutral", "player-creation" },
+    minable = { mining_time = 0.1 },
+    speed = 1,
+    collision_box = { { -0.4, -0.4 }, { 0.4, 0.4 } },
+    belt_animation_set = data.raw["transport-belt"]["transport-belt"].belt_animation_set,
+    fast_replaceable_group = "transport-belt",
+  }
   -- {
   --   type = "simple-entity-with-force",
   --   name = "bp-transport-belt",
