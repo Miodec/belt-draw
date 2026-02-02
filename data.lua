@@ -109,7 +109,7 @@ data:extend({
   {
     type = "custom-input",
     name = "belt-planner-flip-orientation",
-    key_sequence = "R",
+    key_sequence = "F",
     order = "a[mod]-b[belt-planner-flip]",
   },
   {
