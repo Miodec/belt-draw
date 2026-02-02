@@ -323,7 +323,7 @@ local function on_release(player, event, mode)
   print("Horizontal length: " .. segment_side_lengths.x .. ", Vertical length: " .. segment_side_lengths.y)
 
 
-  local belt_positions = current_segment:get_positions_with_direction()
+  local belt_positions = current_segment:get_elements_with_direction()
   for _, pos in pairs(belt_positions) do
     place(player, mode, pos)
   end

@@ -78,7 +78,7 @@ function Segment:get_centered_midpoint()
   return { x = mid.x + 0.5, y = mid.y + 0.5 }
 end
 
-function Segment:get_positions_with_direction()
+function Segment:get_elements_with_direction()
   local belt_positions = {}
   local from = self.from
   local to = self.to
