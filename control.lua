@@ -48,6 +48,7 @@ local function clear_rendering()
     for _, rendering in pairs(storage.drag_rendering) do
       rendering.destroy()
     end
+    storage.drag_rendering = {}
   end
 end
 
