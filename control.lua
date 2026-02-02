@@ -1,12 +1,17 @@
 ---@class StorageData
----@field drag_start {x: number, y: number}?
----@field drag_last {x: number, y: number}?
 ---@field drag_rendering {[1]: LuaRenderObject, [2]: LuaRenderObject, [3]: LuaRenderObject?}?
 ---@field auto_orientation boolean
----@field orientation "horizontal"|"vertical"?
 ---@field starting_direction defines.direction?
 ---@field dragging boolean
 ---@field player_reach number?
+---@field segments LSegment[]
+---@field current_segment_index number?
+
+---@class LSegment
+---@field from {x: number, y: number}
+---@field to {x: number, y: number}
+---@field orientation "horizontal"|"vertical"
+
 
 ---@type StorageData
 storage = storage
@@ -14,28 +19,33 @@ storage = storage
 
 -- Initialize global state
 script.on_init(function()
-  storage.drag_start = nil
-  storage.drag_last = nil
   storage.drag_rendering = nil
   storage.auto_orientation = true
-  storage.orientation = nil
   storage.starting_direction = nil
   storage.dragging = false
   storage.player_reach = nil
+  storage.segments = {}
+  storage.current_segment_index = nil
 end)
 
 script.on_configuration_changed(function()
-  storage.drag_start = storage.drag_start or nil
-  storage.drag_last = storage.drag_last or nil
   storage.drag_rendering = storage.drag_rendering or nil
   if storage.auto_orientation == nil then
     storage.auto_orientation = true
   end
-  storage.orientation = storage.orientation or nil
   storage.starting_direction = storage.starting_direction or nil
   storage.dragging = storage.dragging or false
   storage.player_reach = storage.player_reach or nil
+  storage.segments = storage.segments or {}
+  storage.current_segment_index = storage.current_segment_index or nil
 end)
+
+local function get_current_segment()
+  if storage.current_segment_index == nil then
+    return nil
+  end
+  return storage.segments[storage.current_segment_index]
+end
 
 local function clear_rendering()
   if storage.drag_rendering then
@@ -83,7 +93,9 @@ end
 
 local function render_line(player, from_pos, to_pos)
   -- draw 2 lines to make an L shape
-  local mid_pos = storage.orientation == "vertical" and { x = from_pos.x, y = to_pos.y } or
+  local current_segment = get_current_segment()
+  if current_segment == nil then return end
+  local mid_pos = current_segment.orientation == "vertical" and { x = from_pos.x, y = to_pos.y } or
       { x = to_pos.x, y = from_pos.y }
   local line1 = rendering.draw_line({
     color = { r = 1, g = 1, b = 1 },
@@ -107,21 +119,30 @@ local function render_line(player, from_pos, to_pos)
 end
 
 local function on_drag(player, position)
-  local drag_start = storage.drag_start
+  local current_segment = get_current_segment()
 
-  if drag_start == nil or drag_start.x == nil then
-    storage.drag_start = { x = math.floor(position.x), y = math.floor(position.y) }
-    print("Drag start set at (" .. math.floor(position.x) .. "," .. math.floor(position.y) .. ")")
+  if current_segment == nil or current_segment.from == nil then
+    local pos = { x = math.floor(position.x), y = math.floor(position.y) }
+    table.insert(storage.segments, {
+      from = pos,
+      to = pos,
+      orientation = nil
+    })
+    storage.current_segment_index = #storage.segments
+
+    print("Drag start set at (" .. pos.x .. "," .. pos.y .. ")")
     return
   end
 
-  storage.drag_last = { x = math.floor(position.x), y = math.floor(position.y) }
+
+  current_segment.to = { x = math.floor(position.x), y = math.floor(position.y) }
+
   print("Drag last set at (" .. math.floor(position.x) .. "," .. math.floor(position.y) .. ")")
 
-  if storage.orientation == nil then
+  if current_segment.orientation == nil then
     -- determine starting orientation based on the second point
-    local dx = math.abs(storage.drag_last.x - storage.drag_start.x)
-    local dy = math.abs(storage.drag_last.y - storage.drag_start.y)
+    local dx = math.abs(current_segment.to.x - current_segment.from.x)
+    local dy = math.abs(current_segment.to.y - current_segment.from.y)
 
     if dx == dy then
       player.create_local_flying_text({
@@ -129,17 +150,17 @@ local function on_drag(player, position)
         create_at_cursor = true
       })
     else
-      storage.orientation = dy > dx and "vertical" or "horizontal"
+      current_segment.orientation = dy > dx and "vertical" or "horizontal"
       player.create_local_flying_text({
-        text = storage.orientation == "vertical" and "Vertical-first" or "Horizontal-first",
+        text = current_segment.orientation == "vertical" and "Vertical-first" or "Horizontal-first",
         create_at_cursor = true
       })
     end
   end
 
 
-  local start_x = math.floor(drag_start.x)
-  local start_y = math.floor(drag_start.y)
+  local start_x = math.floor(current_segment.from.x)
+  local start_y = math.floor(current_segment.from.y)
   local end_x = math.floor(position.x)
   local end_y = math.floor(position.y)
 
@@ -147,14 +168,14 @@ local function on_drag(player, position)
     storage.drag_rendering = {}
   end
 
-  if storage.auto_orientation and storage.drag_last then
-    local dx = math.abs(storage.drag_last.x - storage.drag_start.x)
-    local dy = math.abs(storage.drag_last.y - storage.drag_start.y)
+  if storage.auto_orientation and current_segment.to then
+    local dx = math.abs(current_segment.to.x - current_segment.from.x)
+    local dy = math.abs(current_segment.to.y - current_segment.from.y)
 
-    if storage.orientation == "vertical" and dy == 0 then
-      storage.orientation = "horizontal"
-    elseif storage.orientation == "horizontal" and dx == 0 then
-      storage.orientation = "vertical"
+    if current_segment.orientation == "vertical" and dy == 0 then
+      current_segment.orientation = "horizontal"
+    elseif current_segment.orientation == "horizontal" and dx == 0 then
+      current_segment.orientation = "vertical"
     end
   end
 
@@ -224,7 +245,7 @@ local function place(player, mode, pos)
     radius = 0.5,
   })[1]
 
-  if existing ~= nil and existing.type == "resource" then
+  if existing ~= nil and (existing.type == "resource" or existing.type == "character") then
     existing = nil
   end
 
@@ -248,10 +269,9 @@ local function place(player, mode, pos)
 end
 
 local function on_release_cleanup(player, setTool)
-  storage.drag_start = nil
-  storage.drag_last = nil
+  storage.segments = {}
+  storage.current_segment_index = nil
   storage.auto_orientation = true
-  storage.orientation = nil
   storage.dragging = false
   clear_rendering()
   if setTool == nil or setTool == true then
@@ -284,10 +304,9 @@ local function on_release(player, event, mode)
     return
   end
 
-  local drag_start = storage.drag_start
-  local drag_last = storage.drag_last
+  local current_segment = get_current_segment()
 
-  if not drag_start then
+  if current_segment == nil or current_segment.from == nil then
     -- release without a drag start????
     on_release_cleanup(player)
     return
@@ -300,10 +319,10 @@ local function on_release(player, event, mode)
 
 
 
-  if not drag_last then
+  if not current_segment.to or current_segment.from == current_segment.to then
     place(player, mode, {
-      x = math.floor(drag_start.x),
-      y = math.floor(drag_start.y),
+      x = math.floor(current_segment.from.x),
+      y = math.floor(current_segment.from.y),
       direction = storage.starting_direction or defines.direction.north
     })
 
@@ -311,11 +330,11 @@ local function on_release(player, event, mode)
     return
   end
 
-  local start_x = math.floor(drag_start.x)
-  local start_y = math.floor(drag_start.y)
+  local start_x = math.floor(current_segment.from.x)
+  local start_y = math.floor(current_segment.from.y)
 
-  local end_x = math.floor(drag_last.x)
-  local end_y = math.floor(drag_last.y)
+  local end_x = math.floor(current_segment.to.x)
+  local end_y = math.floor(current_segment.to.y)
 
   if end_x == start_x and end_y == start_y then return end
 
@@ -328,7 +347,7 @@ local function on_release(player, event, mode)
 
   print("Horizontal length: " .. horizontal_length .. ", Vertical length: " .. vertical_length)
 
-  if storage.orientation == "vertical" then
+  if current_segment.orientation == "vertical" then
     local y_dir = end_y > start_y and defines.direction.south or defines.direction.north
     local x_dir = end_x > start_x and defines.direction.east or defines.direction.west
     local has_horizontal = start_x ~= end_x
@@ -392,22 +411,24 @@ end
 local function on_flip_orientation(player)
   if not is_holding_bp_tool(player) then return end
 
-  if storage.drag_start == nil or storage.drag_last == nil then return end
+  local current_segment = get_current_segment()
+
+  if current_segment == nil then return end
 
   -- storage.auto_orientation = false
-  if storage.orientation == "horizontal" then
-    storage.orientation = "vertical"
+  if current_segment.orientation == "horizontal" then
+    current_segment.orientation = "vertical"
   else
-    storage.orientation = "horizontal"
+    current_segment.orientation = "horizontal"
   end
   -- player.create_local_flying_text({
-  --   text = storage.orientation == "vertical" and "Vertical-first" or "Horizontal-first",
+  --   text = current_segment.orientation == "vertical" and "Vertical-first" or "Horizontal-first",
   --   create_at_cursor = true
   -- })
   clear_rendering()
   render_line(player,
-    { x = storage.drag_start.x + 0.5, y = storage.drag_start.y + 0.5 },
-    { x = storage.drag_last.x + 0.5, y = storage.drag_last.y + 0.5 }
+    { x = current_segment.from.x + 0.5, y = current_segment.from.y + 0.5 },
+    { x = current_segment.to.x + 0.5, y = current_segment.to.y + 0.5 }
   )
 end
 
@@ -466,7 +487,7 @@ script.on_event(defines.events.on_player_cursor_stack_changed, function(event)
 end)
 
 script.on_event("belt-planner-flip-orientation", function(event)
-  local player = game.get_player(event.player_index)
+  local player = game.get_player(event.player_index) --- @diagnostic disable-line
   if not player then return end
 
   on_flip_orientation(player)
