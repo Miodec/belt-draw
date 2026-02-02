@@ -91,7 +91,7 @@ local function render_line(player)
   local current_segment = get_current_segment()
   if current_segment == nil then return end
   local centered_positions = current_segment:get_centered_positions()
-  local mid_pos = current_segment:get_centered_midpoint()
+  local mid_pos = current_segment.midpoint
   rendering.draw_line({
     color = { r = 1, g = 1, b = 1, a = 0.1 },
     width = 1,
@@ -101,7 +101,7 @@ local function render_line(player)
     },
     to = {
       entity = storage.rendering_target,
-      offset = { x = mid_pos.x - storage.rendering_target.position.x, y = mid_pos.y - storage.rendering_target.position.y },
+      offset = { x = mid_pos.x + 0.5 - storage.rendering_target.position.x, y = mid_pos.y + 0.5 - storage.rendering_target.position.y },
     },
     surface = player.surface,
     players = { player },
@@ -111,7 +111,7 @@ local function render_line(player)
     width = 1,
     from = {
       entity = storage.rendering_target,
-      offset = { x = mid_pos.x - storage.rendering_target.position.x, y = mid_pos.y - storage.rendering_target.position.y },
+      offset = { x = mid_pos.x + 0.5 - storage.rendering_target.position.x, y = mid_pos.y + 0.5 - storage.rendering_target.position.y },
     },
     to = {
       entity = storage.rendering_target,
@@ -223,7 +223,7 @@ local function place(player, mode, pos)
     radius = 0.5,
   })[1]
 
-  if existing ~= nil and (existing.type == "resource" or existing.type == "character") then
+  if existing ~= nil and (existing.type == "resource" or existing.type == "character" or is_bp_entity(existing.type)) then
     existing = nil
   end
 
@@ -262,27 +262,19 @@ local function on_drag(player, position)
 
   local pos = { x = math.floor(position.x), y = math.floor(position.y) }
   current_segment:update_to(pos)
-
-  print("Updated current segment to (" .. pos.x .. "," .. pos.y .. ")")
+  -- if current_segment.orientation == nil then
+  --   player.create_local_flying_text({
+  --     text = "Equal distance dragged, waiting",
+  --     create_at_cursor = true
+  --   })
+  -- else
+  --   player.create_local_flying_text({
+  --     text = current_segment.orientation == "vertical" and "Vertical-first" or "Horizontal-first",
+  --     create_at_cursor = true
+  --   })
+  -- end
 
   local side_lengths = current_segment:get_side_lengths()
-
-  if current_segment.orientation == nil then
-    if side_lengths.x == side_lengths.y then
-      player.create_local_flying_text({
-        text = "Equal distance dragged, waiting",
-        create_at_cursor = true
-      })
-    else
-      -- current_segment:set_orientation(dy > dx and "vertical" or "horizontal")
-      current_segment.orientation = side_lengths.y > side_lengths.x and "vertical" or "horizontal"
-      player.create_local_flying_text({
-        text = current_segment.orientation == "vertical" and "Vertical-first" or "Horizontal-first",
-        create_at_cursor = true
-      })
-    end
-  end
-
   if storage.auto_orientation then
     if current_segment.orientation == "vertical" and side_lengths.y == 0 then
       current_segment.orientation = "horizontal"
@@ -366,11 +358,13 @@ local function on_release(player, event, mode)
 
 
   local belt_positions = current_segment:get_elements_with_direction()
+
+  on_release_cleanup(player)
+  -- doing cleanup first so the dummy entity with renderings is removed
+
   for _, pos in pairs(belt_positions) do
     place(player, mode, pos)
   end
-
-  on_release_cleanup(player)
 end
 
 local function on_flip_orientation(player)

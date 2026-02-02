@@ -1,17 +1,18 @@
 ---@class Segment
 ---@field from {x: number, y: number}
 ---@field to {x: number, y: number}
+---@field midpoint {x: number, y: number}
 ---@field orientation "horizontal"|"vertical"|nil
 local Segment = {}
 Segment.__index = Segment
 
 ---@param from {x: number, y: number}
----@param to {x: number, y: number}?
 ---@return Segment
-function Segment.new(from, to)
+function Segment.new(from)
   local self = setmetatable({}, Segment)
   self.from = from
-  self.to = to or from
+  self.to = from
+  self.midpoint = { x = from.x, y = from.y }
   self.orientation = nil
   return self
 end
@@ -20,14 +21,17 @@ end
 function Segment:update_to(pos)
   self.to = pos
 
-  -- if self.orientation == nil then
-  --   local dx = math.abs(self.to.x - self.from.x)
-  --   local dy = math.abs(self.to.y - self.from.y)
+  if self.orientation == nil then
+    local dx = math.abs(self.to.x - self.from.x)
+    local dy = math.abs(self.to.y - self.from.y)
 
-  --   if dx ~= dy then
-  --     self.orientation = dy > dx and "vertical" or "horizontal"
-  --   end
-  -- end
+    if dx ~= dy then
+      self.orientation = dy > dx and "vertical" or "horizontal"
+    end
+  end
+
+  self.midpoint = self.orientation == "vertical" and { x = self.from.x, y = self.to.y } or
+      { x = self.to.x, y = self.from.y }
 end
 
 function Segment:get_centered_positions()
@@ -67,15 +71,6 @@ function Segment:flip_orientation()
   elseif self.orientation == "vertical" then
     self.orientation = "horizontal"
   end
-end
-
-function Segment:get_midpoint()
-  return self.orientation == "vertical" and { x = self.from.x, y = self.to.y } or { x = self.to.x, y = self.from.y }
-end
-
-function Segment:get_centered_midpoint()
-  local mid = self:get_midpoint()
-  return { x = mid.x + 0.5, y = mid.y + 0.5 }
 end
 
 ---@return {x: number, y: number, direction: defines.direction}[]
