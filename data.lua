@@ -124,6 +124,13 @@ data:extend({
     belt_animation_set = data.raw["transport-belt"]["transport-belt"].belt_animation_set,
     fast_replaceable_group = "transport-belt",
     created_smoke = { smoke_name = "belt-planner-empty-smoke" } --- @diagnostic disable-line
+  },
+  {
+    type = "sprite",
+    name = "belt-planner-chevron",
+    filename = "__belt-planner__/graphics/chevron.png",
+    size = 64,
+    priority = "extra-high-no-scale"
   }
   -- {
   --   type = "simple-entity-with-force",

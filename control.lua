@@ -126,6 +126,25 @@ local function place_ghost(player, item, pos)
   })
 end
 
+local function visualise_current_segment(player)
+  local current_segment = get_current_segment()
+  if current_segment == nil then return end
+
+  local elements = current_segment:get_elements_with_direction()
+
+  for _, pos in pairs(elements) do
+    table.insert(storage.drag_rendering, rendering.draw_sprite({
+      sprite = "belt-planner-chevron",
+      x_scale = 0.25,
+      y_scale = 0.25,
+      target = { x = pos.x + 0.5, y = pos.y + 0.5 },
+      surface = player.surface,
+      players = { player },
+      orientation = pos.direction / 16 - 0.25,
+    }))
+  end
+end
+
 local function place_from_inventory(player, item, pos)
   local inventory = player.get_inventory(defines.inventory.character_main)
 
@@ -251,13 +270,8 @@ local function on_drag(player, position)
     end
   end
 
-  local centered_segment_positions = current_segment:get_centered_positions()
-
   clear_rendering()
-  render_line(player,
-    centered_segment_positions.from,
-    centered_segment_positions.to
-  )
+  visualise_current_segment(player)
 end
 
 local function on_release_cleanup(player, setTool)
@@ -347,13 +361,7 @@ local function on_flip_orientation(player)
 
   current_segment:flip_orientation()
   clear_rendering()
-
-  local centered_segment_positions = current_segment:get_centered_positions()
-
-  render_line(player,
-    centered_segment_positions.from,
-    centered_segment_positions.to
-  )
+  visualise_current_segment(player)
 end
 
 -- Handle selection area (drag and release)
