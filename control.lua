@@ -325,6 +325,32 @@ local function on_release(player, event, mode)
       place = true
     end
 
+    -- local inventory = player.get_inventory(defines.inventory.character_main)
+    -- local count = inventory.get_item_count("transport-belt")
+
+    -- if place then
+    --   if count > 0 then
+    --     player.surface.create_entity({
+    --       name = "transport-belt",
+    --       position = { x = pos.x + 0.5, y = pos.y + 0.5 },
+    --       direction = pos.direction,
+    --       force = player.force,
+    --       player = player,
+    --       fast_replace = true
+    --     })
+    --     inventory.remove({ name = "transport-belt", count = 1 })
+    --   else
+    --     player.surface.create_entity({
+    --       name = "entity-ghost",
+    --       ghost_name = "transport-belt",
+    --       position = { x = pos.x + 0.5, y = pos.y + 0.5 },
+    --       direction = pos.direction,
+    --       force = player.force,
+    --       player = player,
+    --       fast_replace = true
+    --     })
+    --   end
+    -- end
     if place then
       player.surface.create_entity({
         name = "entity-ghost",
