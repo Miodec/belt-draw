@@ -6,6 +6,7 @@
 ---@field orientation "horizontal"|"vertical"?
 ---@field starting_direction defines.direction?
 ---@field dragging boolean
+---@field player_reach number?
 
 ---@type StorageData
 storage = storage
@@ -20,6 +21,7 @@ script.on_init(function()
   storage.orientation = nil
   storage.starting_direction = nil
   storage.dragging = false
+  storage.player_reach = nil
 end)
 
 script.on_configuration_changed(function()
@@ -32,6 +34,7 @@ script.on_configuration_changed(function()
   storage.orientation = storage.orientation or nil
   storage.starting_direction = storage.starting_direction or nil
   storage.dragging = storage.dragging or false
+  storage.player_reach = storage.player_reach or nil
 end)
 
 local function clear_rendering()
@@ -178,7 +181,14 @@ local function place_from_inventory(player, item, pos)
   local inventory = player.get_inventory(defines.inventory.character_main)
   local count = inventory.get_item_count(item)
 
-  if count > 0 then
+  local dx = player.position.x - (pos.x + 0.5)
+  local dy = player.position.y - (pos.y + 0.5)
+  local distance_squared = dx * dx + dy * dy
+  local reach_squared = player.build_distance * player.build_distance
+
+  local can_reach = distance_squared <= reach_squared
+
+  if count > 0 and can_reach then
     player.surface.create_entity({
       name = item,
       position = { x = pos.x + 0.5, y = pos.y + 0.5 },
@@ -189,6 +199,12 @@ local function place_from_inventory(player, item, pos)
     })
     inventory.remove({ name = item, count = 1 })
   else
+    -- if not can_reach then
+    --   player.create_local_flying_text({
+    --     text = "Out of reach",
+    --     create_at_cursor = true
+    --   })
+    -- end
     place_ghost(player, item, pos)
   end
 end
@@ -197,10 +213,20 @@ end
 --@param mode "normal"|"alt"
 --@param pos {x: number, y: number, direction: defines.direction}
 local function place(player, mode, pos)
+  if storage.player_reach then
+    player.character_build_distance_bonus = storage.player_reach
+    storage.player_reach = nil
+  end
+
+
   local existing = player.surface.find_entities_filtered({
     position = { x = pos.x + 0.5, y = pos.y + 0.5 },
     radius = 0.5,
   })[1]
+
+  if existing ~= nil and existing.type == "resource" then
+    existing = nil
+  end
 
   local item = "transport-belt"
 
@@ -425,8 +451,16 @@ script.on_event(defines.events.on_player_cursor_stack_changed, function(event)
     return
   end
 
-  if not is_holding_bp_tool(player) then
-    -- clear any ongoing drag state
+  if is_holding_bp_tool(player) then
+    if storage.player_reach == nil then
+      storage.player_reach = player.character_build_distance_bonus
+    end
+    player.character_build_distance_bonus = 1000000
+  else
+    if storage.player_reach then
+      player.character_build_distance_bonus = storage.player_reach
+      storage.player_reach = nil
+    end
     on_release_cleanup(player, false)
   end
 end)
