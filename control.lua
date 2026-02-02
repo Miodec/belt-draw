@@ -4,6 +4,8 @@
 ---@field drag_rendering {[1]: LuaRenderObject, [2]: LuaRenderObject, [3]: LuaRenderObject?}?
 ---@field auto_orientation boolean
 ---@field orientation "horizontal"|"vertical"?
+---@field single_direction defines.direction?
+---@field dragging boolean
 
 ---@type StorageData
 storage = storage
@@ -15,6 +17,8 @@ script.on_init(function()
   storage.drag_rendering = nil
   storage.auto_orientation = true
   storage.orientation = nil
+  storage.single_direction = nil
+  storage.dragging = false
 end)
 
 script.on_configuration_changed(function()
@@ -25,6 +29,8 @@ script.on_configuration_changed(function()
     storage.auto_orientation = true
   end
   storage.orientation = storage.orientation or nil
+  storage.single_direction = storage.single_direction or nil
+  storage.dragging = storage.dragging or false
 end)
 
 local function clear_rendering()
@@ -62,12 +68,12 @@ local function render_line(player, from_pos, to_pos)
 end
 
 local function on_drag(player, position)
-  if storage.drag_start == nil then
+  if storage.drag_start == nil or storage.drag_start.x == nil then
     storage.drag_start = { x = math.floor(position.x), y = math.floor(position.y) }
-    player.print("Drag start set at (" .. math.floor(position.x) .. "," .. math.floor(position.y) .. ")")
+    print("Drag start set at (" .. math.floor(position.x) .. "," .. math.floor(position.y) .. ")")
   else
     storage.drag_last = { x = math.floor(position.x), y = math.floor(position.y) }
-    player.print("Drag end set at (" .. math.floor(position.x) .. "," .. math.floor(position.y) .. ")")
+    print("Drag end set at (" .. math.floor(position.x) .. "," .. math.floor(position.y) .. ")")
 
     if storage.orientation == nil then
       -- determine starting orientation based on the second point
@@ -139,7 +145,25 @@ local function on_release(player, from_alt)
     return
   end
   if not storage.drag_last then
-    print("No drag end recorded")
+    -- single point drag, place one belt
+
+    -- local cursor_ghost = player.cursor_ghost
+    -- if cursor_stack == nil then return end
+    -- if not cursor_stack.valid_for_read then return end
+    -- if cursor_stack.name ~= "belt-planner" then return end
+
+    -- player.cursor_stack.
+
+    player.surface.create_entity({
+      name = "entity-ghost",
+      ghost_name = "transport-belt",
+      position = { x = math.floor(drag_start.x) + 0.5, y = math.floor(drag_start.y) + 0.5 },
+      direction = storage.single_direction or defines.direction.north,
+      force = player.force,
+      player = player,
+      fast_replace = true
+    })
+
     return
   end
 
@@ -250,24 +274,25 @@ local function on_release(player, from_alt)
     --   })
     -- end
 
-    -- if existing == nil and ghost == nil then
-    player.surface.create_entity({
-      name = "entity-ghost",
-      ghost_name = "transport-belt",
-      position = { x = pos.x + 0.5, y = pos.y + 0.5 },
-      direction = pos.direction,
-      force = player.force,
-      player = player,
-      fast_replace = true
-    })
-    -- end
+
+    if (existing == nil and ghost == nil) or ((existing ~= nil and existing.type == "transport-belt") or (ghost ~= nil and ghost.ghost_name == "transport-belt")) then
+      player.surface.create_entity({
+        name = "entity-ghost",
+        ghost_name = "transport-belt",
+        position = { x = pos.x + 0.5, y = pos.y + 0.5 },
+        direction = pos.direction,
+        force = player.force,
+        player = player,
+        fast_replace = true
+      })
+    end
   end
 end
 
 local function on_flip_orientation(player)
   if player.cursor_stack == nil then return end
   if player.cursor_stack.valid_for_read == false then return end
-  if player.cursor_stack.name ~= "belt-planner" then return end
+  if player.cursor_stack.name ~= "belt-planner" and player.cursor_stack.name ~= "belt-planner-drag" then return end
 
   if storage.drag_start == nil or storage.drag_last == nil then return end
 
@@ -292,7 +317,11 @@ local function set_tool(player)
   local cursor_stack = player.cursor_stack
   if cursor_stack then
     if not cursor_stack.valid_for_read or cursor_stack.name == "belt-planner" or player.clear_cursor() then
-      cursor_stack.set_stack({ name = "belt-planner", count = 1 })
+      if storage.dragging == true then
+        cursor_stack.set_stack({ name = "belt-planner-drag", count = 1 })
+      else
+        cursor_stack.set_stack({ name = "belt-planner", count = 1 })
+      end
     end
     if player.controller_type == defines.controllers.character and player.character_build_distance_bonus < 1000000 then
       player.character_build_distance_bonus = player.character_build_distance_bonus + 1000000
@@ -302,7 +331,7 @@ end
 
 -- Handle selection area (drag and release)
 script.on_event(defines.events.on_player_selected_area, function(event)
-  if event.item ~= "belt-planner" then return end
+  if event.item ~= "belt-planner" and event.item ~= "belt-planner-drag" then return end
 
   print("Selected area from (" ..
     event.area.left_top.x ..
@@ -320,10 +349,13 @@ script.on_event(defines.events.on_player_selected_area, function(event)
   storage.drag_last = nil
   storage.auto_orientation = true
   storage.orientation = nil
+  storage.dragging = false
+
+  set_tool(player)
 end)
 
 script.on_event(defines.events.on_player_alt_selected_area, function(event)
-  if event.item ~= "belt-planner" then return end
+  if event.item ~= "belt-planner" and event.item ~= "belt-planner-drag" then return end
 
   print("alt Selected area from (" ..
     event.area.left_top.x ..
@@ -341,10 +373,13 @@ script.on_event(defines.events.on_player_alt_selected_area, function(event)
   storage.drag_last = nil
   storage.auto_orientation = true
   storage.orientation = nil
+  storage.dragging = false
+
+  set_tool(player)
 end)
 
 script.on_event(defines.events.on_player_reverse_selected_area, function(event)
-  if event.item ~= "belt-planner" then return end
+  if event.item ~= "belt-planner" and event.item ~= "belt-planner-drag" then return end
 
   print("reverse Selected area from (" ..
     event.area.left_top.x ..
@@ -380,6 +415,23 @@ script.on_event("belt-planner-flip-orientation", function(event)
   on_flip_orientation(player)
 end)
 
+script.on_event(defines.events.on_pre_build, function(event)
+  local player = game.get_player(event.player_index)
+  if not player then
+    return
+  end
+
+  local cursor_stack = player.cursor_stack
+  if cursor_stack == nil then return end
+  if not cursor_stack.valid_for_read then return end
+  if cursor_stack.name ~= "belt-planner" and cursor_stack.name ~= "belt-planner-drag" then return end
+
+  -- is building with the tool
+  storage.dragging = true
+  storage.single_direction = event.direction or defines.direction.north
+  set_tool(player)
+  on_drag(player, event.position)
+end)
 
 script.on_event(defines.events.on_built_entity, function(event)
   local entity = event.entity
@@ -388,16 +440,12 @@ script.on_event(defines.events.on_built_entity, function(event)
     name = entity.ghost_name
   end
 
+  if name ~= "bp-transport-belt" and name ~= "bp-dummy-entity" then return end
 
-  if name ~= "bp-dummy-entity" then return end
-  local position, surface = entity.position, entity.surface
-  entity.destroy()
-
-  local player = game.get_player(event.player_index)
-  if not player then
+  if storage.dragging == true then
+    set_tool(game.get_player(event.player_index))
+    local position, surface, direction = entity.position, entity.surface, entity.direction
+    entity.destroy()
     return
   end
-  set_tool(player)
-
-  on_drag(player, position)
 end)
