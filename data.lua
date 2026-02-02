@@ -71,9 +71,9 @@ data:extend({
   },
   {
     type = "shortcut",
-    name = "belt-planner",
+    name = "belt-planner-shortcut",
     action = "spawn-item",
-    item_to_spawn = "belt-planner",
+    item_to_spawn = "belt-planner-preview",
     icon = "__base__/graphics/icons/transport-belt.png",
     icon_size = 64,
     small_icon = "__base__/graphics/icons/transport-belt.png",
