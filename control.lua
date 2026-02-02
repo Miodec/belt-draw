@@ -89,7 +89,7 @@ local function render_line(player, from_pos, to_pos)
     to = mid_pos,
     surface = player.surface,
     players = { player },
-    time_to_live = 300
+    -- time_to_live = 300
   })
   local line2 = rendering.draw_line({
     color = { r = 1, g = 1, b = 1 },
@@ -98,7 +98,7 @@ local function render_line(player, from_pos, to_pos)
     to = to_pos,
     surface = player.surface,
     players = { player },
-    time_to_live = 300
+    -- time_to_live = 300
   })
   storage.drag_rendering = { line1, line2 }
 end
