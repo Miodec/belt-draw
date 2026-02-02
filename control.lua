@@ -1,17 +1,13 @@
+local Segment = require("segment")
+
 ---@class StorageData
 ---@field drag_rendering {[1]: LuaRenderObject, [2]: LuaRenderObject, [3]: LuaRenderObject?}?
 ---@field auto_orientation boolean
 ---@field starting_direction defines.direction?
 ---@field dragging boolean
 ---@field player_reach number?
----@field segments LSegment[]
+---@field segments Segment[]
 ---@field current_segment_index number?
-
----@class LSegment
----@field from {x: number, y: number}
----@field to {x: number, y: number}
----@field orientation "horizontal"|"vertical"
-
 
 ---@type StorageData
 storage = storage
@@ -95,8 +91,7 @@ local function render_line(player, from_pos, to_pos)
   -- draw 2 lines to make an L shape
   local current_segment = get_current_segment()
   if current_segment == nil then return end
-  local mid_pos = current_segment.orientation == "vertical" and { x = from_pos.x, y = to_pos.y } or
-      { x = to_pos.x, y = from_pos.y }
+  local mid_pos = current_segment:get_centered_midpoint()
   local line1 = rendering.draw_line({
     color = { r = 1, g = 1, b = 1 },
     width = 3,
@@ -121,36 +116,32 @@ end
 local function on_drag(player, position)
   local current_segment = get_current_segment()
 
-  if current_segment == nil or current_segment.from == nil then
+  if current_segment == nil then
     local pos = { x = math.floor(position.x), y = math.floor(position.y) }
-    table.insert(storage.segments, {
-      from = pos,
-      to = pos,
-      orientation = nil
-    })
+    local segment = Segment.new(pos)
+    table.insert(storage.segments, segment)
     storage.current_segment_index = #storage.segments
 
     print("Drag start set at (" .. pos.x .. "," .. pos.y .. ")")
     return
   end
 
+  local pos = { x = math.floor(position.x), y = math.floor(position.y) }
+  current_segment:update_to(pos)
 
-  current_segment.to = { x = math.floor(position.x), y = math.floor(position.y) }
+  print("Drag last set at (" .. pos.x .. "," .. pos.y .. ")")
 
-  print("Drag last set at (" .. math.floor(position.x) .. "," .. math.floor(position.y) .. ")")
+  local side_lengths = current_segment:get_side_lengths()
 
   if current_segment.orientation == nil then
-    -- determine starting orientation based on the second point
-    local dx = math.abs(current_segment.to.x - current_segment.from.x)
-    local dy = math.abs(current_segment.to.y - current_segment.from.y)
-
-    if dx == dy then
+    if side_lengths.x == side_lengths.y then
       player.create_local_flying_text({
         text = "Equal distance dragged, waiting",
         create_at_cursor = true
       })
     else
-      current_segment.orientation = dy > dx and "vertical" or "horizontal"
+      -- current_segment:set_orientation(dy > dx and "vertical" or "horizontal")
+      current_segment.orientation = side_lengths.y > side_lengths.x and "vertical" or "horizontal"
       player.create_local_flying_text({
         text = current_segment.orientation == "vertical" and "Vertical-first" or "Horizontal-first",
         create_at_cursor = true
@@ -158,31 +149,24 @@ local function on_drag(player, position)
     end
   end
 
-
-  local start_x = math.floor(current_segment.from.x)
-  local start_y = math.floor(current_segment.from.y)
-  local end_x = math.floor(position.x)
-  local end_y = math.floor(position.y)
-
   if storage.drag_rendering == nil then
     storage.drag_rendering = {}
   end
 
-  if storage.auto_orientation and current_segment.to then
-    local dx = math.abs(current_segment.to.x - current_segment.from.x)
-    local dy = math.abs(current_segment.to.y - current_segment.from.y)
-
-    if current_segment.orientation == "vertical" and dy == 0 then
+  if storage.auto_orientation then
+    if current_segment.orientation == "vertical" and side_lengths.y == 0 then
       current_segment.orientation = "horizontal"
-    elseif current_segment.orientation == "horizontal" and dx == 0 then
+    elseif current_segment.orientation == "horizontal" and side_lengths.x == 0 then
       current_segment.orientation = "vertical"
     end
   end
 
+  local centered_segment_positions = current_segment:get_centered_positions()
+
   clear_rendering()
   render_line(player,
-    { x = start_x + 0.5, y = start_y + 0.5 },
-    { x = end_x + 0.5, y = end_y + 0.5 }
+    centered_segment_positions.from,
+    centered_segment_positions.to
   )
 end
 
@@ -306,12 +290,10 @@ local function on_release(player, event, mode)
 
   local current_segment = get_current_segment()
 
-  if current_segment == nil or current_segment.from == nil then
-    -- release without a drag start????
+  if current_segment == nil then
     on_release_cleanup(player)
     return
   end
-
 
   print(mode .. " selected area from (" ..
     event.area.left_top.x ..
@@ -319,10 +301,10 @@ local function on_release(player, event, mode)
 
 
 
-  if not current_segment.to or current_segment.from == current_segment.to then
+  if current_segment:is_single_point() then
     place(player, mode, {
-      x = math.floor(current_segment.from.x),
-      y = math.floor(current_segment.from.y),
+      x = current_segment.from.x,
+      y = current_segment.from.y,
       direction = storage.starting_direction or defines.direction.north
     })
 
@@ -330,73 +312,69 @@ local function on_release(player, event, mode)
     return
   end
 
-  local start_x = math.floor(current_segment.from.x)
-  local start_y = math.floor(current_segment.from.y)
-
-  local end_x = math.floor(current_segment.to.x)
-  local end_y = math.floor(current_segment.to.y)
-
-  if end_x == start_x and end_y == start_y then return end
 
   ---@type {x: number, y: number, direction: defines.direction}[]
   local belt_positions = {}
 
-  -- Determine orientation based on longer side if auto
-  local horizontal_length = math.abs(end_x - start_x)
-  local vertical_length = math.abs(end_y - start_y)
+  local segment_side_lengths = current_segment:get_side_lengths()
 
-  print("Horizontal length: " .. horizontal_length .. ", Vertical length: " .. vertical_length)
+  -- Determine orientation based on longer side if auto
+
+  print("Horizontal length: " .. segment_side_lengths.x .. ", Vertical length: " .. segment_side_lengths.y)
+
+  local from = current_segment.from
+  local to = current_segment.to
 
   if current_segment.orientation == "vertical" then
-    local y_dir = end_y > start_y and defines.direction.south or defines.direction.north
-    local x_dir = end_x > start_x and defines.direction.east or defines.direction.west
-    local has_horizontal = start_x ~= end_x
+    local y_dir = to.y > from.y and defines.direction.south or defines.direction.north
+    local x_dir = to.x > from.x and defines.direction.east or defines.direction.west
+    local has_horizontal = from.x ~= to.x
 
     -- Vertical first
-    if start_y < end_y then
-      for y = start_y, end_y do
-        local is_last = (y == end_y) and has_horizontal
-        table.insert(belt_positions, { x = start_x, y = y, direction = is_last and x_dir or y_dir })
+    if from.y < to.y then
+      for y = from.y, to.y do
+        local is_last = (y == to.y) and has_horizontal
+        table.insert(belt_positions, { x = from.x, y = y, direction = is_last and x_dir or y_dir })
       end
-    elseif start_y > end_y then
-      for y = start_y, end_y, -1 do
-        local is_last = (y == end_y) and has_horizontal
-        table.insert(belt_positions, { x = start_x, y = y, direction = is_last and x_dir or y_dir })
+    elseif from.y > to.y then
+      for y = from.y, to.y, -1 do
+        local is_last = (y == to.y) and has_horizontal
+        table.insert(belt_positions, { x = from.x, y = y, direction = is_last and x_dir or y_dir })
       end
     end
-    if start_x < end_x then
-      for x = start_x, end_x do
-        table.insert(belt_positions, { x = x, y = end_y, direction = x_dir })
+    if from.x < to.x then
+      for x = from.x, to.x do
+        table.insert(belt_positions, { x = x, y = to.y, direction = x_dir })
       end
-    elseif start_x > end_x then
-      for x = start_x, end_x, -1 do
-        table.insert(belt_positions, { x = x, y = end_y, direction = x_dir })
+    elseif from.x > to.x then
+      for x = from.x, to.x, -1 do
+        table.insert(belt_positions, { x = x, y = to.y, direction = x_dir })
       end
     end
   else
-    local x_dir = end_x > start_x and defines.direction.east or defines.direction.west
-    local y_dir = end_y > start_y and defines.direction.south or defines.direction.north
-    local has_vertical = start_y ~= end_y
+    local x_dir = to.x > from.x and defines.direction.east or defines.direction.west
+    local y_dir = to.y > from.y and defines.direction.south or defines.direction.north
+    local has_vertical = from.y ~= to.y
 
     -- Horizontal first
-    if start_x < end_x then
-      for x = start_x, end_x do
-        local is_last = (x == end_x) and has_vertical
-        table.insert(belt_positions, { x = x, y = start_y, direction = is_last and y_dir or x_dir })
+    if from.x < to.x then
+      for x = from.x, to.x do
+        local is_last = (x == to.x) and has_vertical
+        table.insert(belt_positions, { x = x, y = from.y, direction = is_last and y_dir or x_dir })
       end
-    elseif start_x > end_x then
-      for x = start_x, end_x, -1 do
-        local is_last = (x == end_x) and has_vertical
-        table.insert(belt_positions, { x = x, y = start_y, direction = is_last and y_dir or x_dir })
+    elseif from.x > to.x then
+      for x = from.x, to.x, -1 do
+        local is_last = (x == to.x) and has_vertical
+        table.insert(belt_positions, { x = x, y = from.y, direction = is_last and y_dir or x_dir })
       end
     end
-    if start_y < end_y then
-      for y = start_y, end_y do
-        table.insert(belt_positions, { x = end_x, y = y, direction = y_dir })
+    if from.y < to.y then
+      for y = from.y, to.y do
+        table.insert(belt_positions, { x = to.x, y = y, direction = y_dir })
       end
-    elseif start_y > end_y then
-      for y = start_y, end_y, -1 do
-        table.insert(belt_positions, { x = end_x, y = y, direction = y_dir })
+    elseif from.y > to.y then
+      for y = from.y, to.y, -1 do
+        table.insert(belt_positions, { x = to.x, y = y, direction = y_dir })
       end
     end
   end
@@ -415,20 +393,14 @@ local function on_flip_orientation(player)
 
   if current_segment == nil then return end
 
-  -- storage.auto_orientation = false
-  if current_segment.orientation == "horizontal" then
-    current_segment.orientation = "vertical"
-  else
-    current_segment.orientation = "horizontal"
-  end
-  -- player.create_local_flying_text({
-  --   text = current_segment.orientation == "vertical" and "Vertical-first" or "Horizontal-first",
-  --   create_at_cursor = true
-  -- })
+  current_segment:flip_orientation()
   clear_rendering()
+
+  local centered_segment_positions = current_segment:get_centered_positions()
+
   render_line(player,
-    { x = current_segment.from.x + 0.5, y = current_segment.from.y + 0.5 },
-    { x = current_segment.to.x + 0.5, y = current_segment.to.y + 0.5 }
+    centered_segment_positions.from,
+    centered_segment_positions.to
   )
 end
 
