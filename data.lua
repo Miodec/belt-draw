@@ -1,7 +1,19 @@
+local data_util = require("__flib__.data-util")
+
 data:extend({
   {
     type = "collision-layer",
     name = "belt-planner-layer",
+  },
+  {
+    type = "trivial-smoke",
+    name = "belt-planner-empty-smoke",
+    animation = {
+      filename = data_util.empty_image,
+      size = { 1, 1 },
+      frame_count = 8,
+    },
+    duration = 1,
   },
   {
     type = "selection-tool",
@@ -91,7 +103,8 @@ data:extend({
     picture = {
       filename = "__core__/graphics/empty.png",
       size = 1
-    }
+    },
+    created_smoke = { smoke_name = "belt-planner-empty-smoke" } --- @diagnostic disable-line
   },
   {
     type = "custom-input",
@@ -110,6 +123,7 @@ data:extend({
     collision_box = { { -0.4, -0.4 }, { 0.4, 0.4 } },
     belt_animation_set = data.raw["transport-belt"]["transport-belt"].belt_animation_set,
     fast_replaceable_group = "transport-belt",
+    created_smoke = { smoke_name = "belt-planner-empty-smoke" } --- @diagnostic disable-line
   }
   -- {
   --   type = "simple-entity-with-force",
