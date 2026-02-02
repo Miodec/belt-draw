@@ -157,10 +157,27 @@ local function on_drag(player, position)
   )
 end
 
+local function set_tool(player)
+  local cursor_stack = player.cursor_stack
+  if cursor_stack then
+    if not cursor_stack.valid_for_read or is_bp_tool(cursor_stack.name) or player.clear_cursor() then
+      if storage.dragging == true then
+        cursor_stack.set_stack({ name = "belt-planner-drag", count = 1 })
+      else
+        cursor_stack.set_stack({ name = "belt-planner", count = 1 })
+      end
+    end
+    if player.controller_type == defines.controllers.character and player.character_build_distance_bonus < 1000000 then
+      player.character_build_distance_bonus = player.character_build_distance_bonus + 1000000
+    end
+  end
+end
+
+
 local function on_release(player, from_alt)
   local drag_start = storage.drag_start
   if not drag_start then
-    print("No drag start recorded")
+    goto continue
     return
   end
   if not storage.drag_last then
@@ -183,6 +200,7 @@ local function on_release(player, from_alt)
       fast_replace = true
     })
 
+    goto continue
     return
   end
 
@@ -293,6 +311,16 @@ local function on_release(player, from_alt)
       })
     end
   end
+
+  ::continue::
+  storage.drag_start = nil
+  storage.drag_last = nil
+  storage.auto_orientation = true
+  storage.orientation = nil
+  storage.dragging = false
+  clear_rendering()
+
+  set_tool(player)
 end
 
 local function on_flip_orientation(player)
@@ -317,22 +345,6 @@ local function on_flip_orientation(player)
   )
 end
 
-local function set_tool(player)
-  local cursor_stack = player.cursor_stack
-  if cursor_stack then
-    if not cursor_stack.valid_for_read or is_bp_tool(cursor_stack.name) or player.clear_cursor() then
-      if storage.dragging == true then
-        cursor_stack.set_stack({ name = "belt-planner-drag", count = 1 })
-      else
-        cursor_stack.set_stack({ name = "belt-planner", count = 1 })
-      end
-    end
-    if player.controller_type == defines.controllers.character and player.character_build_distance_bonus < 1000000 then
-      player.character_build_distance_bonus = player.character_build_distance_bonus + 1000000
-    end
-  end
-end
-
 -- Handle selection area (drag and release)
 script.on_event(defines.events.on_player_selected_area, function(event)
   if not is_bp_tool(event.item) then return end
@@ -346,16 +358,7 @@ script.on_event(defines.events.on_player_selected_area, function(event)
     return
   end
 
-  clear_rendering()
   on_release(player)
-
-  storage.drag_start = nil
-  storage.drag_last = nil
-  storage.auto_orientation = true
-  storage.orientation = nil
-  storage.dragging = false
-
-  set_tool(player)
 end)
 
 script.on_event(defines.events.on_player_alt_selected_area, function(event)
@@ -370,16 +373,7 @@ script.on_event(defines.events.on_player_alt_selected_area, function(event)
     return
   end
 
-  clear_rendering()
   on_release(player, true)
-
-  storage.drag_start = nil
-  storage.drag_last = nil
-  storage.auto_orientation = true
-  storage.orientation = nil
-  storage.dragging = false
-
-  set_tool(player)
 end)
 
 script.on_event(defines.events.on_player_reverse_selected_area, function(event)
