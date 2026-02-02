@@ -17,6 +17,11 @@ function Segment.new(from)
   return self
 end
 
+function Segment:update_midpoint()
+  self.midpoint = self.orientation == "vertical" and { x = self.from.x, y = self.to.y } or
+      { x = self.to.x, y = self.from.y }
+end
+
 ---@param pos {x: number, y: number}
 function Segment:update_to(pos)
   self.to = pos
@@ -30,8 +35,7 @@ function Segment:update_to(pos)
     end
   end
 
-  self.midpoint = self.orientation == "vertical" and { x = self.from.x, y = self.to.y } or
-      { x = self.to.x, y = self.from.y }
+  self:update_midpoint()
 end
 
 function Segment:get_centered_positions()
@@ -71,6 +75,7 @@ function Segment:flip_orientation()
   elseif self.orientation == "vertical" then
     self.orientation = "horizontal"
   end
+  self:update_midpoint()
 end
 
 ---@return {x: number, y: number, direction: defines.direction}[]
