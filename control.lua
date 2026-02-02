@@ -127,6 +127,12 @@ end
 
 local function place_from_inventory(player, item, pos)
   local inventory = player.get_inventory(defines.inventory.character_main)
+
+  if not inventory then
+    place_ghost(player, item, pos)
+    return
+  end
+
   local count = inventory.get_item_count(item)
 
   local dx = player.position.x - pos.x
