@@ -88,30 +88,32 @@ local function set_tool(player)
   end
 end
 
-local function render_line(player, from_pos, to_pos)
+local function render_line(player)
   -- draw 2 lines to make an L shape
   local current_segment = get_current_segment()
   if current_segment == nil then return end
+  local centered_positions = current_segment:get_centered_positions()
   local mid_pos = current_segment:get_centered_midpoint()
   local line1 = rendering.draw_line({
-    color = { r = 1, g = 1, b = 1 },
-    width = 3,
-    from = from_pos,
+    color = { r = 1, g = 1, b = 1, a = 0.1 },
+    width = 1,
+    from = centered_positions.from,
     to = mid_pos,
     surface = player.surface,
     players = { player },
     -- time_to_live = 300
   })
   local line2 = rendering.draw_line({
-    color = { r = 1, g = 1, b = 1 },
-    width = 3,
+    color = { r = 1, g = 1, b = 1, a = 0.1 },
+    width = 1,
     from = mid_pos,
-    to = to_pos,
+    to = centered_positions.to,
     surface = player.surface,
     players = { player },
     -- time_to_live = 300
   })
-  storage.drag_rendering = { line1, line2 }
+  table.insert(storage.drag_rendering, line1)
+  table.insert(storage.drag_rendering, line2)
 end
 
 local function place_ghost(player, item, pos)
@@ -143,6 +145,7 @@ local function visualise_current_segment(player)
       orientation = pos.direction / 16 - 0.25,
     }))
   end
+  render_line(player)
 end
 
 local function place_from_inventory(player, item, pos)
