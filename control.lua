@@ -4,7 +4,7 @@
 ---@field drag_rendering {[1]: LuaRenderObject, [2]: LuaRenderObject, [3]: LuaRenderObject?}?
 ---@field auto_orientation boolean
 ---@field orientation "horizontal"|"vertical"?
----@field single_direction defines.direction?
+---@field starting_direction defines.direction?
 ---@field dragging boolean
 
 ---@type StorageData
@@ -17,7 +17,7 @@ script.on_init(function()
   storage.drag_rendering = nil
   storage.auto_orientation = true
   storage.orientation = nil
-  storage.single_direction = nil
+  storage.starting_direction = nil
   storage.dragging = false
 end)
 
@@ -29,7 +29,7 @@ script.on_configuration_changed(function()
     storage.auto_orientation = true
   end
   storage.orientation = storage.orientation or nil
-  storage.single_direction = storage.single_direction or nil
+  storage.starting_direction = storage.starting_direction or nil
   storage.dragging = storage.dragging or false
 end)
 
@@ -213,7 +213,7 @@ local function on_release(player, event, mode)
       name = "entity-ghost",
       ghost_name = "transport-belt",
       position = { x = math.floor(drag_start.x) + 0.5, y = math.floor(drag_start.y) + 0.5 },
-      direction = storage.single_direction or defines.direction.north,
+      direction = storage.starting_direction or defines.direction.north,
       force = player.force,
       player = player,
       fast_replace = true
@@ -406,7 +406,7 @@ script.on_event(defines.events.on_pre_build, function(event)
   if not is_holding_bp_tool(player) then return end
 
   storage.dragging = true
-  storage.single_direction = event.direction or defines.direction.north
+  storage.starting_direction = event.direction or defines.direction.north
   set_tool(player)
   on_drag(player, event.position)
 end)
