@@ -173,23 +173,54 @@ local function set_tool(player)
   end
 end
 
+local function on_release_cleanup(player)
+  storage.drag_start = nil
+  storage.drag_last = nil
+  storage.auto_orientation = true
+  storage.orientation = nil
+  storage.dragging = false
+  clear_rendering()
+  set_tool(player)
+end
 
-local function on_release(player, from_alt)
-  local drag_start = storage.drag_start
-  if not drag_start then
-    goto continue
+--@param player LuaPlayer
+--@param event EventData
+--@param mode "normal"|"alt"
+local function on_release(player, event, mode)
+  if mode == "reverse" then
+    -- mark entities for deconstruction
+    local entities = player.surface.find_entities_filtered({
+      area = event.area,
+      type = "transport-belt"
+    })
+    for _, e in pairs(entities) do
+      e.order_deconstruction(player.force, player)
+    end
+
+    local ghosts = player.surface.find_entities_filtered({
+      area = event.area,
+      name = "entity-ghost"
+    })
+    for _, g in pairs(ghosts) do
+      g.destroy()
+    end
+    on_release_cleanup(player)
     return
   end
+
+  local drag_start = storage.drag_start
+  if not drag_start then
+    on_release_cleanup(player)
+    return
+  end
+
+
+  print(mode .. " selected area from (" ..
+    event.area.left_top.x ..
+    "," .. event.area.left_top.y .. ") to (" .. event.area.right_bottom.x .. "," .. event.area.right_bottom.y .. ")")
+
+
   if not storage.drag_last then
-    -- single point drag, place one belt
-
-    -- local cursor_ghost = player.cursor_ghost
-    -- if cursor_stack == nil then return end
-    -- if not cursor_stack.valid_for_read then return end
-    -- if cursor_stack.name ~= "belt-planner" then return end
-
-    -- player.cursor_stack.
-
     player.surface.create_entity({
       name = "entity-ghost",
       ghost_name = "transport-belt",
@@ -200,7 +231,7 @@ local function on_release(player, from_alt)
       fast_replace = true
     })
 
-    goto continue
+    on_release_cleanup(player)
     return
   end
 
@@ -290,7 +321,7 @@ local function on_release(player, from_alt)
           place = true
         end
       else
-        if from_alt then
+        if mode == "alt" then
           place = true
         end
       end
@@ -312,15 +343,7 @@ local function on_release(player, from_alt)
     end
   end
 
-  ::continue::
-  storage.drag_start = nil
-  storage.drag_last = nil
-  storage.auto_orientation = true
-  storage.orientation = nil
-  storage.dragging = false
-  clear_rendering()
-
-  set_tool(player)
+  on_release_cleanup(player)
 end
 
 local function on_flip_orientation(player)
@@ -349,61 +372,34 @@ end
 script.on_event(defines.events.on_player_selected_area, function(event)
   if not is_bp_tool(event.item) then return end
 
-  print("Selected area from (" ..
-    event.area.left_top.x ..
-    "," .. event.area.left_top.y .. ") to (" .. event.area.right_bottom.x .. "," .. event.area.right_bottom.y .. ")")
-
   local player = game.get_player(event.player_index)
   if not player then
     return
   end
 
-  on_release(player)
+  on_release(player, event, "normal")
 end)
 
 script.on_event(defines.events.on_player_alt_selected_area, function(event)
   if not is_bp_tool(event.item) then return end
 
-  print("alt Selected area from (" ..
-    event.area.left_top.x ..
-    "," .. event.area.left_top.y .. ") to (" .. event.area.right_bottom.x .. "," .. event.area.right_bottom.y .. ")")
-
   local player = game.get_player(event.player_index)
   if not player then
     return
   end
 
-  on_release(player, true)
+  on_release(player, event, "alt")
 end)
 
 script.on_event(defines.events.on_player_reverse_selected_area, function(event)
   if not is_bp_tool(event.item) then return end
 
-  print("reverse Selected area from (" ..
-    event.area.left_top.x ..
-    "," .. event.area.left_top.y .. ") to (" .. event.area.right_bottom.x .. "," .. event.area.right_bottom.y .. ")")
-
   local player = game.get_player(event.player_index)
   if not player then
     return
   end
 
-  -- mark entities for deconstruction
-  local entities = player.surface.find_entities_filtered({
-    area = event.area,
-    type = "transport-belt"
-  })
-  for _, e in pairs(entities) do
-    e.order_deconstruction(player.force, player)
-  end
-
-  local ghosts = player.surface.find_entities_filtered({
-    area = event.area,
-    name = "entity-ghost"
-  })
-  for _, g in pairs(ghosts) do
-    g.destroy()
-  end
+  on_release(player, event, "reverse")
 end)
 
 script.on_event("belt-planner-flip-orientation", function(event)
