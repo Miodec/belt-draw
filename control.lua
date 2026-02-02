@@ -320,7 +320,7 @@ end
 local function set_tool(player)
   local cursor_stack = player.cursor_stack
   if cursor_stack then
-    if not cursor_stack.valid_for_read or cursor_stack.name == "belt-planner" or player.clear_cursor() then
+    if not cursor_stack.valid_for_read or is_bp_tool(cursor_stack.name) or player.clear_cursor() then
       if storage.dragging == true then
         cursor_stack.set_stack({ name = "belt-planner-drag", count = 1 })
       else
