@@ -78,6 +78,67 @@ function Segment:get_centered_midpoint()
   return { x = mid.x + 0.5, y = mid.y + 0.5 }
 end
 
+function Segment:get_positions_with_direction()
+  local belt_positions = {}
+  local from = self.from
+  local to = self.to
+
+  if self.orientation == "vertical" then
+    local y_dir = to.y > from.y and defines.direction.south or defines.direction.north
+    local x_dir = to.x > from.x and defines.direction.east or defines.direction.west
+    local has_horizontal = from.x ~= to.x
+
+    -- Vertical first
+    if from.y < to.y then
+      for y = from.y, to.y do
+        local is_last = (y == to.y) and has_horizontal
+        table.insert(belt_positions, { x = from.x, y = y, direction = is_last and x_dir or y_dir })
+      end
+    elseif from.y > to.y then
+      for y = from.y, to.y, -1 do
+        local is_last = (y == to.y) and has_horizontal
+        table.insert(belt_positions, { x = from.x, y = y, direction = is_last and x_dir or y_dir })
+      end
+    end
+    if from.x < to.x then
+      for x = from.x, to.x do
+        table.insert(belt_positions, { x = x, y = to.y, direction = x_dir })
+      end
+    elseif from.x > to.x then
+      for x = from.x, to.x, -1 do
+        table.insert(belt_positions, { x = x, y = to.y, direction = x_dir })
+      end
+    end
+  else
+    local x_dir = to.x > from.x and defines.direction.east or defines.direction.west
+    local y_dir = to.y > from.y and defines.direction.south or defines.direction.north
+    local has_vertical = from.y ~= to.y
+
+    -- Horizontal first
+    if from.x < to.x then
+      for x = from.x, to.x do
+        local is_last = (x == to.x) and has_vertical
+        table.insert(belt_positions, { x = x, y = from.y, direction = is_last and y_dir or x_dir })
+      end
+    elseif from.x > to.x then
+      for x = from.x, to.x, -1 do
+        local is_last = (x == to.x) and has_vertical
+        table.insert(belt_positions, { x = x, y = from.y, direction = is_last and y_dir or x_dir })
+      end
+    end
+    if from.y < to.y then
+      for y = from.y, to.y do
+        table.insert(belt_positions, { x = to.x, y = y, direction = y_dir })
+      end
+    elseif from.y > to.y then
+      for y = from.y, to.y, -1 do
+        table.insert(belt_positions, { x = to.x, y = y, direction = y_dir })
+      end
+    end
+  end
+  return belt_positions
+end
+
 -- function Segment:set_orientation(orientation)
 --   self.orientation = orientation
 -- end

@@ -314,7 +314,6 @@ local function on_release(player, event, mode)
 
 
   ---@type {x: number, y: number, direction: defines.direction}[]
-  local belt_positions = {}
 
   local segment_side_lengths = current_segment:get_side_lengths()
 
@@ -322,63 +321,8 @@ local function on_release(player, event, mode)
 
   print("Horizontal length: " .. segment_side_lengths.x .. ", Vertical length: " .. segment_side_lengths.y)
 
-  local from = current_segment.from
-  local to = current_segment.to
 
-  if current_segment.orientation == "vertical" then
-    local y_dir = to.y > from.y and defines.direction.south or defines.direction.north
-    local x_dir = to.x > from.x and defines.direction.east or defines.direction.west
-    local has_horizontal = from.x ~= to.x
-
-    -- Vertical first
-    if from.y < to.y then
-      for y = from.y, to.y do
-        local is_last = (y == to.y) and has_horizontal
-        table.insert(belt_positions, { x = from.x, y = y, direction = is_last and x_dir or y_dir })
-      end
-    elseif from.y > to.y then
-      for y = from.y, to.y, -1 do
-        local is_last = (y == to.y) and has_horizontal
-        table.insert(belt_positions, { x = from.x, y = y, direction = is_last and x_dir or y_dir })
-      end
-    end
-    if from.x < to.x then
-      for x = from.x, to.x do
-        table.insert(belt_positions, { x = x, y = to.y, direction = x_dir })
-      end
-    elseif from.x > to.x then
-      for x = from.x, to.x, -1 do
-        table.insert(belt_positions, { x = x, y = to.y, direction = x_dir })
-      end
-    end
-  else
-    local x_dir = to.x > from.x and defines.direction.east or defines.direction.west
-    local y_dir = to.y > from.y and defines.direction.south or defines.direction.north
-    local has_vertical = from.y ~= to.y
-
-    -- Horizontal first
-    if from.x < to.x then
-      for x = from.x, to.x do
-        local is_last = (x == to.x) and has_vertical
-        table.insert(belt_positions, { x = x, y = from.y, direction = is_last and y_dir or x_dir })
-      end
-    elseif from.x > to.x then
-      for x = from.x, to.x, -1 do
-        local is_last = (x == to.x) and has_vertical
-        table.insert(belt_positions, { x = x, y = from.y, direction = is_last and y_dir or x_dir })
-      end
-    end
-    if from.y < to.y then
-      for y = from.y, to.y do
-        table.insert(belt_positions, { x = to.x, y = y, direction = y_dir })
-      end
-    elseif from.y > to.y then
-      for y = from.y, to.y, -1 do
-        table.insert(belt_positions, { x = to.x, y = y, direction = y_dir })
-      end
-    end
-  end
-
+  local belt_positions = current_segment:get_positions_with_direction()
   for _, pos in pairs(belt_positions) do
     place(player, mode, pos)
   end
