@@ -10,6 +10,7 @@
 ---@type StorageData
 storage = storage
 
+
 -- Initialize global state
 script.on_init(function()
   storage.drag_start = nil
@@ -59,6 +60,22 @@ local function is_bp_entity(entity)
     return entity.ghost_name == "belt-planner-dummy-transport-belt" or entity.ghost_name == "belt-planner-dummy-entity"
   end
   return entity.name == "belt-planner-dummy-transport-belt" or entity.name == "belt-planner-dummy-entity"
+end
+
+local function set_tool(player)
+  local cursor_stack = player.cursor_stack
+  if cursor_stack then
+    if not cursor_stack.valid_for_read or is_bp_tool(cursor_stack.name) or player.clear_cursor() then
+      if storage.dragging == true then
+        cursor_stack.set_stack({ name = "belt-planner", count = 1 })
+      else
+        cursor_stack.set_stack({ name = "belt-planner-preview", count = 1 })
+      end
+    end
+    if player.controller_type == defines.controllers.character and player.character_build_distance_bonus < 1000000 then
+      player.character_build_distance_bonus = player.character_build_distance_bonus + 1000000
+    end
+  end
 end
 
 local function render_line(player, from_pos, to_pos)
@@ -143,22 +160,6 @@ local function on_drag(player, position)
     { x = start_x + 0.5, y = start_y + 0.5 },
     { x = end_x + 0.5, y = end_y + 0.5 }
   )
-end
-
-local function set_tool(player)
-  local cursor_stack = player.cursor_stack
-  if cursor_stack then
-    if not cursor_stack.valid_for_read or is_bp_tool(cursor_stack.name) or player.clear_cursor() then
-      if storage.dragging == true then
-        cursor_stack.set_stack({ name = "belt-planner", count = 1 })
-      else
-        cursor_stack.set_stack({ name = "belt-planner-preview", count = 1 })
-      end
-    end
-    if player.controller_type == defines.controllers.character and player.character_build_distance_bonus < 1000000 then
-      player.character_build_distance_bonus = player.character_build_distance_bonus + 1000000
-    end
-  end
 end
 
 local function on_release_cleanup(player)
