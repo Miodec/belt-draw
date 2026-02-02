@@ -5,6 +5,39 @@ data:extend({
   },
   {
     type = "selection-tool",
+    name = "belt-planner-preview",
+    icon = "__base__/graphics/icons/transport-belt.png",
+    icon_size = 64,
+    stack_size = 1,
+    subgroup = "tool",
+    order = "c[automated-construction]-d[belt-planner]",
+    select = {
+      mode = "nothing",
+      border_color = { a = 0 },
+      cursor_box_type = "not-allowed",
+    },
+    alt_select = {
+      mode = "nothing",
+      border_color = { a = 0 },
+      cursor_box_type = "not-allowed",
+    },
+    reverse_select = {
+      mode = "deconstruct",
+      border_color = { a = 0, r = 1 },
+      cursor_box_type = "not-allowed",
+    },
+    flags = { "only-in-cursor", "spawnable" },
+    hidden = true,
+    draw_label_for_cursor_render = true,
+    place_result = "belt-planner-dummy-transport-belt",
+    collision_mask = {
+      layers = {
+        ["belt-planner-layer"] = true
+      }
+    }
+  },
+  {
+    type = "selection-tool",
     name = "belt-planner",
     icon = "__base__/graphics/icons/transport-belt.png",
     icon_size = 64,
@@ -29,40 +62,7 @@ data:extend({
     flags = { "only-in-cursor", "spawnable" },
     hidden = true,
     draw_label_for_cursor_render = true,
-    place_result = "bp-transport-belt",
-    collision_mask = {
-      layers = {
-        ["belt-planner-layer"] = true
-      }
-    }
-  },
-  {
-    type = "selection-tool",
-    name = "belt-planner-drag",
-    icon = "__base__/graphics/icons/transport-belt.png",
-    icon_size = 64,
-    stack_size = 1,
-    subgroup = "tool",
-    order = "c[automated-construction]-d[belt-planner]",
-    select = {
-      mode = "nothing",
-      border_color = { a = 0 },
-      cursor_box_type = "not-allowed",
-    },
-    alt_select = {
-      mode = "nothing",
-      border_color = { a = 0 },
-      cursor_box_type = "not-allowed",
-    },
-    reverse_select = {
-      mode = "deconstruct",
-      border_color = { a = 0, r = 1 },
-      cursor_box_type = "not-allowed",
-    },
-    flags = { "only-in-cursor", "spawnable" },
-    hidden = true,
-    draw_label_for_cursor_render = true,
-    place_result = "bp-dummy-entity",
+    place_result = "belt-planner-dummy-entity",
     collision_mask = {
       layers = {
         ["belt-planner-layer"] = true
@@ -82,7 +82,7 @@ data:extend({
   },
   {
     type = "simple-entity-with-force",
-    name = "bp-dummy-entity",
+    name = "belt-planner-dummy-entity",
     flags = { "not-on-map", "player-creation" },
     hidden = false,
     collision_box = { { -0.4, -0.4 }, { 0.4, 0.4 } },
@@ -101,7 +101,7 @@ data:extend({
   },
   {
     type = "transport-belt",
-    name = "bp-transport-belt",
+    name = "belt-planner-dummy-transport-belt",
     icon = "__base__/graphics/icons/transport-belt.png",
     icon_size = 64,
     flags = { "placeable-neutral", "player-creation" },

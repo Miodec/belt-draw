@@ -42,7 +42,7 @@ local function clear_rendering()
 end
 
 local function is_bp_tool(tool_name)
-  return tool_name == "belt-planner" or tool_name == "belt-planner-drag"
+  return tool_name == "belt-planner" or tool_name == "belt-planner-preview"
 end
 
 local function is_holding_bp_tool(player)
@@ -56,9 +56,9 @@ end
 
 local function is_bp_entity(entity)
   if entity.type == "entity-ghost" then
-    return entity.ghost_name == "bp-transport-belt" or entity.ghost_name == "bp-dummy-entity"
+    return entity.ghost_name == "belt-planner-dummy-transport-belt" or entity.ghost_name == "belt-planner-dummy-entity"
   end
-  return entity.name == "bp-transport-belt" or entity.name == "bp-dummy-entity"
+  return entity.name == "belt-planner-dummy-transport-belt" or entity.name == "belt-planner-dummy-entity"
 end
 
 local function render_line(player, from_pos, to_pos)
@@ -150,9 +150,9 @@ local function set_tool(player)
   if cursor_stack then
     if not cursor_stack.valid_for_read or is_bp_tool(cursor_stack.name) or player.clear_cursor() then
       if storage.dragging == true then
-        cursor_stack.set_stack({ name = "belt-planner-drag", count = 1 })
-      else
         cursor_stack.set_stack({ name = "belt-planner", count = 1 })
+      else
+        cursor_stack.set_stack({ name = "belt-planner-preview", count = 1 })
       end
     end
     if player.controller_type == defines.controllers.character and player.character_build_distance_bonus < 1000000 then
@@ -197,7 +197,10 @@ local function on_release(player, event, mode)
   end
 
   local drag_start = storage.drag_start
+  local drag_last = storage.drag_last
+
   if not drag_start then
+    -- release without a drag start????
     on_release_cleanup(player)
     return
   end
@@ -208,7 +211,8 @@ local function on_release(player, event, mode)
     "," .. event.area.left_top.y .. ") to (" .. event.area.right_bottom.x .. "," .. event.area.right_bottom.y .. ")")
 
 
-  if not storage.drag_last then
+
+  if not drag_last then
     player.surface.create_entity({
       name = "entity-ghost",
       ghost_name = "transport-belt",
@@ -223,11 +227,11 @@ local function on_release(player, event, mode)
     return
   end
 
-  local start_x = math.floor(storage.drag_start.x)
-  local start_y = math.floor(storage.drag_start.y)
+  local start_x = math.floor(drag_start.x)
+  local start_y = math.floor(drag_start.y)
 
-  local end_x = math.floor(storage.drag_last.x)
-  local end_y = math.floor(storage.drag_last.y)
+  local end_x = math.floor(drag_last.x)
+  local end_y = math.floor(drag_last.y)
 
   if end_x == start_x and end_y == start_y then return end
 
