@@ -113,63 +113,6 @@ local function render_line(player, from_pos, to_pos)
   storage.drag_rendering = { line1, line2 }
 end
 
-local function on_drag(player, position)
-  local current_segment = get_current_segment()
-
-  if current_segment == nil then
-    local pos = { x = math.floor(position.x), y = math.floor(position.y) }
-    local segment = Segment.new(pos)
-    table.insert(storage.segments, segment)
-    storage.current_segment_index = #storage.segments
-
-    print("Drag start set at (" .. pos.x .. "," .. pos.y .. ")")
-    return
-  end
-
-  local pos = { x = math.floor(position.x), y = math.floor(position.y) }
-  current_segment:update_to(pos)
-
-  print("Drag last set at (" .. pos.x .. "," .. pos.y .. ")")
-
-  local side_lengths = current_segment:get_side_lengths()
-
-  if current_segment.orientation == nil then
-    if side_lengths.x == side_lengths.y then
-      player.create_local_flying_text({
-        text = "Equal distance dragged, waiting",
-        create_at_cursor = true
-      })
-    else
-      -- current_segment:set_orientation(dy > dx and "vertical" or "horizontal")
-      current_segment.orientation = side_lengths.y > side_lengths.x and "vertical" or "horizontal"
-      player.create_local_flying_text({
-        text = current_segment.orientation == "vertical" and "Vertical-first" or "Horizontal-first",
-        create_at_cursor = true
-      })
-    end
-  end
-
-  if storage.drag_rendering == nil then
-    storage.drag_rendering = {}
-  end
-
-  if storage.auto_orientation then
-    if current_segment.orientation == "vertical" and side_lengths.y == 0 then
-      current_segment.orientation = "horizontal"
-    elseif current_segment.orientation == "horizontal" and side_lengths.x == 0 then
-      current_segment.orientation = "vertical"
-    end
-  end
-
-  local centered_segment_positions = current_segment:get_centered_positions()
-
-  clear_rendering()
-  render_line(player,
-    centered_segment_positions.from,
-    centered_segment_positions.to
-  )
-end
-
 local function place_ghost(player, item, pos)
   player.surface.create_entity({
     name = "entity-ghost",
@@ -250,6 +193,64 @@ local function place(player, mode, pos)
     --nothing is there
     place_from_inventory(player, item, pos)
   end
+end
+
+
+local function on_drag(player, position)
+  local current_segment = get_current_segment()
+
+  if current_segment == nil then
+    local pos = { x = math.floor(position.x), y = math.floor(position.y) }
+    local segment = Segment.new(pos)
+    table.insert(storage.segments, segment)
+    storage.current_segment_index = #storage.segments
+
+    print("Created new segment starting at (" .. pos.x .. "," .. pos.y .. ")")
+    return
+  end
+
+  local pos = { x = math.floor(position.x), y = math.floor(position.y) }
+  current_segment:update_to(pos)
+
+  print("Updated current segment to (" .. pos.x .. "," .. pos.y .. ")")
+
+  local side_lengths = current_segment:get_side_lengths()
+
+  if current_segment.orientation == nil then
+    if side_lengths.x == side_lengths.y then
+      player.create_local_flying_text({
+        text = "Equal distance dragged, waiting",
+        create_at_cursor = true
+      })
+    else
+      -- current_segment:set_orientation(dy > dx and "vertical" or "horizontal")
+      current_segment.orientation = side_lengths.y > side_lengths.x and "vertical" or "horizontal"
+      player.create_local_flying_text({
+        text = current_segment.orientation == "vertical" and "Vertical-first" or "Horizontal-first",
+        create_at_cursor = true
+      })
+    end
+  end
+
+  if storage.drag_rendering == nil then
+    storage.drag_rendering = {}
+  end
+
+  if storage.auto_orientation then
+    if current_segment.orientation == "vertical" and side_lengths.y == 0 then
+      current_segment.orientation = "horizontal"
+    elseif current_segment.orientation == "horizontal" and side_lengths.x == 0 then
+      current_segment.orientation = "vertical"
+    end
+  end
+
+  local centered_segment_positions = current_segment:get_centered_positions()
+
+  clear_rendering()
+  render_line(player,
+    centered_segment_positions.from,
+    centered_segment_positions.to
+  )
 end
 
 local function on_release_cleanup(player, setTool)
