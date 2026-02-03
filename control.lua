@@ -75,6 +75,19 @@ local function set_tool(player)
   end
 end
 
+local function cleanup(player, setTool)
+  for _, segment in pairs(storage.segments) do
+    segment:destroy()
+  end
+  storage.segments = {}
+  storage.current_segment_index = nil
+  storage.auto_orientation = true
+  storage.dragging = false
+  if setTool == nil or setTool == true then
+    set_tool(player)
+  end
+end
+
 local function place_ghost(player, item, pos)
   player.surface.create_entity({
     name = "entity-ghost",
@@ -166,19 +179,6 @@ local function place(player, mode, pos)
   else
     --nothing is there
     place_from_inventory(player, item, pos)
-  end
-end
-
-local function cleanup(player, setTool)
-  for _, segment in pairs(storage.segments) do
-    segment:destroy()
-  end
-  storage.segments = {}
-  storage.current_segment_index = nil
-  storage.auto_orientation = true
-  storage.dragging = false
-  if setTool == nil or setTool == true then
-    set_tool(player)
   end
 end
 
