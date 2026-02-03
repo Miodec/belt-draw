@@ -72,9 +72,6 @@ local function set_tool(player)
         cursor_stack.set_stack({ name = "belt-planner-preview", count = 1 })
       end
     end
-    -- if player.controller_type == defines.controllers.character and player.character_build_distance_bonus < 1000000 then
-    --   player.character_build_distance_bonus = player.character_build_distance_bonus + 1000000
-    -- end
   end
 end
 
@@ -178,8 +175,6 @@ local function on_drag_start(player, position)
     #storage.segments + 1)
   table.insert(storage.segments, segment)
   storage.current_segment_index = #storage.segments
-
-  print("Created new segment starting at (" .. pos.x .. "," .. pos.y .. ")")
 end
 
 local function on_drag(player, position, current_segment)
@@ -226,31 +221,15 @@ local function on_release(player, event, mode)
   end
 
   for _, segment in pairs(storage.segments) do
-    print(mode .. " selected area from (" ..
-      event.area.left_top.x ..
-      "," .. event.area.left_top.y .. ") to (" .. event.area.right_bottom.x .. "," .. event.area.right_bottom.y .. ")")
-
-
-
     if segment:is_single_point() then
       place(player, mode, {
         x = segment.from.x,
         y = segment.from.y,
         direction = storage.starting_direction or defines.direction.north
       })
-
       on_release_cleanup(player)
       return
     end
-
-
-    ---@type {x: number, y: number, direction: defines.direction}[]
-
-    local segment_side_lengths = segment:get_side_lengths()
-
-    -- Determine orientation based on longer side if auto
-
-    print("Horizontal length: " .. segment_side_lengths.x .. ", Vertical length: " .. segment_side_lengths.y)
 
     for _, pos in pairs(segment.nodes) do
       place(player, mode, pos)
