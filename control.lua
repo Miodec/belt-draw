@@ -230,29 +230,8 @@ end
 
 local function on_drag(player, position, current_segment)
   local pos = { x = math.floor(position.x), y = math.floor(position.y) }
-  current_segment:update_to(pos)
-  -- if current_segment.orientation == nil then
-  --   player.create_local_flying_text({
-  --     text = "Equal distance dragged, waiting",
-  --     create_at_cursor = true
-  --   })
-  -- else
-  --   player.create_local_flying_text({
-  --     text = current_segment.orientation == "vertical" and "Vertical-first" or "Horizontal-first",
-  --     create_at_cursor = true
-  --   })
-  -- end
-
-  local side_lengths = current_segment:get_side_lengths()
-  if storage.auto_orientation then
-    if current_segment.orientation == "vertical" and side_lengths.y == 0 then
-      current_segment.orientation = "horizontal"
-    elseif current_segment.orientation == "horizontal" and side_lengths.x == 0 then
-      current_segment.orientation = "vertical"
-    end
-  end
-
-  visualise_segments(player)
+  current_segment:update_to(pos, storage.auto_orientation)
+  current_segment:visualize()
 end
 
 local function on_release_cleanup(player, setTool)

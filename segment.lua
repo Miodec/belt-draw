@@ -37,19 +37,27 @@ function Segment:update_midpoint()
 end
 
 ---@param pos {x: number, y: number}
-function Segment:update_to(pos)
+function Segment:update_to(pos, update_orientation)
   self.to = pos
 
-  if self.orientation == nil then
-    local dx = math.abs(self.to.x - self.from.x)
-    local dy = math.abs(self.to.y - self.from.y)
+  local side_lengths = self:get_side_lengths()
 
-    if dx ~= dy then
-      self.orientation = dy > dx and "vertical" or "horizontal"
+  if self.orientation == nil then
+    if side_lengths.x ~= side_lengths.y then
+      self.orientation = side_lengths.y > side_lengths.x and "vertical" or "horizontal"
+    end
+  end
+
+  if update_orientation then
+    if self.orientation == "vertical" and side_lengths.y == 0 then
+      self.orientation = "horizontal"
+    elseif self.orientation == "horizontal" and side_lengths.x == 0 then
+      self.orientation = "vertical"
     end
   end
 
   self:update_midpoint()
+  -- self:visualize()
 end
 
 function Segment:clear_visualization()
