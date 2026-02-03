@@ -7,7 +7,7 @@ local Segment = require("segment")
 ---@field dragging boolean
 ---@field player_reach number?
 ---@field segments Segment[]
----@field current_segment_index number?
+---@field current_segment Segment?
 
 ---@type StorageData
 storage = storage
@@ -20,7 +20,7 @@ script.on_init(function()
   storage.dragging = false
   storage.player_reach = nil
   storage.segments = {}
-  storage.current_segment_index = nil
+  storage.current_segment = nil
 end)
 
 script.on_configuration_changed(function()
@@ -31,16 +31,8 @@ script.on_configuration_changed(function()
   storage.dragging = storage.dragging or false
   storage.player_reach = storage.player_reach or nil
   storage.segments = storage.segments or {}
-  storage.current_segment_index = storage.current_segment_index or nil
+  storage.current_segment = storage.current_segment or nil
 end)
-
-local function get_current_segment()
-  if storage.current_segment_index == nil then
-    return nil
-  end
-  return storage.segments[storage.current_segment_index]
-end
-
 
 local function is_bp_tool(tool_name)
   return tool_name == "belt-planner" or tool_name == "belt-planner-preview"
@@ -80,7 +72,7 @@ local function cleanup(player, setTool)
     segment:destroy()
   end
   storage.segments = {}
-  storage.current_segment_index = nil
+  storage.current_segment = nil
   storage.auto_orientation = true
   storage.dragging = false
   if setTool == nil or setTool == true then
@@ -228,7 +220,7 @@ end
 function add_segment(pos, surface)
   local segment = Segment.new(pos, storage.starting_direction, surface, #storage.segments + 1)
   table.insert(storage.segments, segment)
-  storage.current_segment_index = #storage.segments
+  storage.current_segment = segment
 
   for _, seg in pairs(storage.segments) do
     seg:update_max_segment_id(#storage.segments)
@@ -294,12 +286,9 @@ script.on_event("belt-planner-flip-orientation", function(event)
   if not player then return end
 
   if not is_holding_bp_tool(player) then return end
+  if storage.current_segment == nil then return end
 
-  local current_segment = get_current_segment()
-  if current_segment == nil then return end
-
-  current_segment:flip_orientation()
-
+  storage.current_segment:flip_orientation()
   player.create_local_flying_text({
     text = { "belt-planner.flipped" },
     create_at_cursor = true
@@ -311,11 +300,9 @@ script.on_event("belt-planner-anchor", function(event)
   if not player then return end
 
   if not is_holding_bp_tool(player) then return end
+  if storage.current_segment == nil then return end
 
-  local current_segment = get_current_segment()
-  if current_segment == nil then return end
-
-  add_segment(current_segment.to, player.surface)
+  add_segment(storage.current_segment.to, player.surface)
 
   player.create_local_flying_text({
     text = { "belt-planner.anchored" },
@@ -335,13 +322,12 @@ script.on_event(defines.events.on_pre_build, function(event)
   storage.starting_direction = event.direction or defines.direction.north
   set_tool(player)
 
-  local current_segment = get_current_segment()
   local pos = { x = math.floor(event.position.x), y = math.floor(event.position.y) }
 
-  if current_segment == nil then
+  if storage.current_segment == nil then
     add_segment(pos, player.surface)
   else
-    current_segment:update_to(pos, storage.auto_orientation)
+    storage.current_segment:update_to(pos, storage.auto_orientation)
   end
 end)
 
