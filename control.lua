@@ -189,7 +189,12 @@ local function place(player, mode, pos)
     radius = 0.5,
   })[1]
 
-  if existing ~= nil and (existing.type == "resource" or existing.type == "character" or is_bp_entity(existing.type)) then
+  if existing ~= nil and is_bp_entity(existing) then
+    existing.destroy()
+    existing = nil
+  end
+
+  if existing ~= nil and (existing.type == "resource" or existing.type == "character") then
     existing = nil
   end
 
