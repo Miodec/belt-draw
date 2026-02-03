@@ -110,7 +110,7 @@ function Segment:draw_arrow(node)
     y_scale = 0.25,
     target = { x = node.x + 0.5, y = node.y + 0.5 },
     surface = self.surface,
-    orientation = node.direction / 16 - 0.25,
+    orientation = node.direction * 0.0625 - 0.25,
   }
   node.render = rendering.draw_sprite(sprite)
 end
@@ -135,13 +135,12 @@ function Segment:visualize(divergence_index)
   for i = divergence_index + 1, target_count do
     local node = self.nodes[i]
     local is_anchor = (i == 1 and self.self_id ~= 1)
-    local target_pos = { x = node.x + 0.5, y = node.y + 0.5 }
 
     if node.render and node.render.valid then
       -- Update existing render object
-      node.render.target = target_pos
+      node.render.target = { x = node.x + 0.5, y = node.y + 0.5 }
       if not is_anchor then
-        node.render.orientation = node.direction / 16 - 0.25
+        node.render.orientation = node.direction * 0.0625 - 0.25
       end
     else
       -- Create new render object
@@ -209,46 +208,38 @@ end
 --- @return {point: {x: number, y: number}, index: number}|nil
 function Segment:update_nodes(prev_orientation)
   local divergence = findLDivergencePoint(self.from, self.prev_to, self.to, prev_orientation or self.orientation)
-
-  local old_nodes = self.nodes
   local skip = divergence and divergence.index or 0
+
+  -- Generate new path from divergence point
   local new_nodes = self:get_nodes(skip)
 
-  -- print("new nodes count: " .. #new_nodes)
-  -- for i, node in ipairs(new_nodes) do
-  --   print("  " .. i .. ": (" .. node.x .. ", " .. node.y .. ") dir=" .. node.direction)
-  -- end
+  -- Reuse old node tables where possible, append new ones
+  local final_count = skip + #new_nodes
 
-  -- Build final node list: old nodes up to skip, then new nodes
-  local final_nodes = {}
-
-  -- Keep unchanged nodes before divergence
-  for i = 1, skip do
-    if old_nodes[i] then
-      final_nodes[i] = old_nodes[i]
-    end
-  end
-
-  -- Append new nodes after divergence point
+  -- Update nodes after divergence point
   for i = 1, #new_nodes do
-    final_nodes[skip + i] = new_nodes[i]
-  end
-
-  -- Clean up orphaned old render objects
-  for i = skip + 1, #old_nodes do
-    local old_node = old_nodes[i]
-    if old_node and old_node.render and old_node.render.valid then
-      old_node.render.destroy()
+    local target_idx = skip + i
+    if self.nodes[target_idx] then
+      -- Reuse existing table
+      local node = self.nodes[target_idx]
+      node.x = new_nodes[i].x
+      node.y = new_nodes[i].y
+      node.direction = new_nodes[i].direction
+      -- Keep existing render object
+    else
+      -- Append new node
+      self.nodes[target_idx] = new_nodes[i]
     end
   end
 
-  self.nodes = final_nodes
-
-  -- print("Updated nodes count: " .. #self.nodes)
-  -- print("Nodes:")
-  -- for i, node in ipairs(self.nodes) do
-  --   print("  " .. i .. ": (" .. node.x .. ", " .. node.y .. ") dir=" .. node.direction)
-  -- end
+  -- Clean up excess nodes beyond final count
+  for i = final_count + 1, #self.nodes do
+    local node = self.nodes[i]
+    if node and node.render and node.render.valid then
+      node.render.destroy()
+    end
+    self.nodes[i] = nil
+  end
 
   return divergence
 end
@@ -268,15 +259,15 @@ function Segment:get_nodes(skip)
     local y_step = to.y > from.y and 1 or -1
     local x_step = to.x > from.x and 1 or -1
 
-    local vert_len = math.abs(to.y - from.y) + 1
-
     -- Vertical segment
     local y = from.y
     local idx = 0
+    local count = 0
     while true do
       if idx >= skip then
         local is_last = (y == to.y) and has_horizontal
-        belt_positions[#belt_positions + 1] = { x = from.x, y = y, direction = is_last and x_dir or y_dir }
+        count = count + 1
+        belt_positions[count] = { x = from.x, y = y, direction = is_last and x_dir or y_dir }
       end
       idx = idx + 1
       if y == to.y then break end
@@ -288,7 +279,8 @@ function Segment:get_nodes(skip)
       local x = from.x + x_step
       while true do
         if idx >= skip then
-          belt_positions[#belt_positions + 1] = { x = x, y = to.y, direction = x_dir }
+          count = count + 1
+          belt_positions[count] = { x = x, y = to.y, direction = x_dir }
         end
         idx = idx + 1
         if x == to.x then break end
@@ -305,10 +297,12 @@ function Segment:get_nodes(skip)
     -- Horizontal segment
     local x = from.x
     local idx = 0
+    local count = 0
     while true do
       if idx >= skip then
         local is_last = (x == to.x) and has_vertical
-        belt_positions[#belt_positions + 1] = { x = x, y = from.y, direction = is_last and y_dir or x_dir }
+        count = count + 1
+        belt_positions[count] = { x = x, y = from.y, direction = is_last and y_dir or x_dir }
       end
       idx = idx + 1
       if x == to.x then break end
@@ -320,7 +314,8 @@ function Segment:get_nodes(skip)
       local y = from.y + y_step
       while true do
         if idx >= skip then
-          belt_positions[#belt_positions + 1] = { x = to.x, y = y, direction = y_dir }
+          count = count + 1
+          belt_positions[count] = { x = to.x, y = y, direction = y_dir }
         end
         idx = idx + 1
         if y == to.y then break end
