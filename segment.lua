@@ -12,16 +12,15 @@ Segment.__index = Segment
 ---@param from {x: number, y: number}
 ---@param surface LuaSurface
 ---@param self_id number
----@param max_segment_id number|
 ---@return Segment
-function Segment.new(from, first_node_direction, surface, self_id, max_segment_id)
+function Segment.new(from, first_node_direction, surface, self_id)
   local self = setmetatable({}, Segment)
   self.from = from
   self.to = from
   self.midpoint = { x = from.x, y = from.y }
   self.orientation = nil
-  self.self_id = self_id or 1
-  self.max_segment_id = max_segment_id
+  self.self_id = self_id
+  self.max_segment_id = self_id
   self.nodes = {
     {
       x = from.x,

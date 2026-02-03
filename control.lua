@@ -169,19 +169,6 @@ local function place(player, mode, pos)
   end
 end
 
-local function on_drag_start(player, position)
-  local pos = { x = math.floor(position.x), y = math.floor(position.y) }
-  local segment = Segment.new(pos, storage.starting_direction, player.surface, #storage.segments + 1,
-    #storage.segments + 1)
-  table.insert(storage.segments, segment)
-  storage.current_segment_index = #storage.segments
-end
-
-local function on_drag(player, position, current_segment)
-  local pos = { x = math.floor(position.x), y = math.floor(position.y) }
-  current_segment:update_to(pos, storage.auto_orientation)
-end
-
 local function cleanup(player, setTool)
   for _, segment in pairs(storage.segments) do
     segment:destroy()
@@ -235,6 +222,16 @@ local function on_release(player, event, mode)
       place(player, mode, pos)
     end
     cleanup(player)
+  end
+end
+
+function add_segment(pos, surface)
+  local segment = Segment.new(pos, storage.starting_direction, surface, #storage.segments + 1)
+  table.insert(storage.segments, segment)
+  storage.current_segment_index = #storage.segments
+
+  for _, seg in pairs(storage.segments) do
+    seg:update_max_segment_id(#storage.segments)
   end
 end
 
@@ -318,15 +315,7 @@ script.on_event("belt-planner-anchor", function(event)
   local current_segment = get_current_segment()
   if current_segment == nil then return end
 
-  local pos = current_segment.to
-  local segment = Segment.new(pos, storage.starting_direction, player.surface, #storage.segments + 1,
-    #storage.segments + 1)
-  table.insert(storage.segments, segment)
-  storage.current_segment_index = #storage.segments
-
-  for _, seg in pairs(storage.segments) do
-    seg:update_max_segment_id(#storage.segments)
-  end
+  add_segment(current_segment.to, player.surface)
 
   player.create_local_flying_text({
     text = { "belt-planner.anchored" },
@@ -347,12 +336,12 @@ script.on_event(defines.events.on_pre_build, function(event)
   set_tool(player)
 
   local current_segment = get_current_segment()
+  local pos = { x = math.floor(event.position.x), y = math.floor(event.position.y) }
 
   if current_segment == nil then
-    on_drag_start(player, event.position)
-    return
+    add_segment(pos, player.surface)
   else
-    on_drag(player, event.position, current_segment)
+    current_segment:update_to(pos, storage.auto_orientation)
   end
 end)
 
