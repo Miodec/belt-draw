@@ -4,6 +4,5 @@
   "title": "Belt Planner",
   "author": "Miodec",
   "factorio_version": "2.0",
-  "description": "Drag-to-place L-shaped belt tool with a preview. Right-click to remove.",
-  "dependencies": ["flib >= 0.16.5"]
+  "description": "Drag-to-place L-shaped belt tool with a preview. Right-click to remove."
 }

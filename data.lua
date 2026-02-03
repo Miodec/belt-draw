@@ -1,5 +1,3 @@
-local data_util = require("__flib__.data-util")
-
 data:extend({
   {
     type = "collision-layer",
@@ -9,7 +7,7 @@ data:extend({
     type = "trivial-smoke",
     name = "belt-planner-empty-smoke",
     animation = {
-      filename = data_util.empty_image,
+      filename = "__core__/graphics/empty.png",
       size = { 1, 1 },
       frame_count = 8,
     },
