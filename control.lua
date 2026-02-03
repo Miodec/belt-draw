@@ -319,12 +319,10 @@ local function on_release(player, event, mode)
 
     local belt_positions = segment:get_elements_with_direction()
 
-    on_release_cleanup(player)
-    -- doing cleanup first so the dummy entity with renderings is removed
-
     for _, pos in pairs(belt_positions) do
       place(player, mode, pos)
     end
+    on_release_cleanup(player)
   end
 end
 
