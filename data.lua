@@ -133,11 +133,19 @@ data:extend({
   },
   {
     type = "sprite",
-    name = "belt-planner-chevron",
-    filename = "__belt-planner__/graphics/chevron.png",
+    name = "belt-planner-arrow",
+    filename = "__belt-planner__/graphics/arrow.png",
+    size = 64,
+    priority = "extra-high-no-scale"
+  },
+  {
+    type = "sprite",
+    name = "belt-planner-anchor",
+    filename = "__belt-planner__/graphics/anchor.png",
     size = 64,
     priority = "extra-high-no-scale"
   }
+
   -- {
   --   type = "simple-entity-with-force",
   --   name = "bp-transport-belt",

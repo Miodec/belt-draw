@@ -219,9 +219,11 @@ end
 
 local function on_drag_start(player, position)
   local pos = { x = math.floor(position.x), y = math.floor(position.y) }
-  local segment = Segment.new(pos, player.surface, #storage.segments + 1)
+  local segment = Segment.new(pos, player.surface, #storage.segments + 1, #storage.segments + 1)
   table.insert(storage.segments, segment)
   storage.current_segment_index = #storage.segments
+
+  visualise_segments(player)
 
   print("Created new segment starting at (" .. pos.x .. "," .. pos.y .. ")")
 end
@@ -408,9 +410,16 @@ script.on_event("belt-planner-anchor", function(event)
   if current_segment == nil then return end
 
   local pos = current_segment.to
-  local segment = Segment.new(pos, player.surface, #storage.segments + 1)
+  local segment = Segment.new(pos, player.surface, #storage.segments + 1, #storage.segments + 1)
   table.insert(storage.segments, segment)
   storage.current_segment_index = #storage.segments
+
+  for _, seg in pairs(storage.segments) do
+    seg:update_max_segment_id(#storage.segments)
+  end
+
+  -- visualise the previous segment to hide the last arrow
+  storage.segments[#storage.segments - 1]:visualize()
 
   visualise_segments(player)
 

@@ -11,18 +11,24 @@ Segment.__index = Segment
 
 ---@param from {x: number, y: number}
 ---@param surface LuaSurface
----@param self_id number|nil
+---@param self_id number
+---@param max_segment_id number|
 ---@return Segment
-function Segment.new(from, surface, self_id)
+function Segment.new(from, surface, self_id, max_segment_id)
   local self = setmetatable({}, Segment)
   self.from = from
   self.to = from
   self.midpoint = { x = from.x, y = from.y }
   self.orientation = nil
   self.self_id = self_id or 1
+  self.max_segment_id = max_segment_id
   self.render_entity = nil
   self.surface = surface
   return self
+end
+
+function Segment:update_max_segment_id(max_segment_id)
+  self.max_segment_id = max_segment_id
 end
 
 function Segment:update_midpoint()
@@ -53,6 +59,35 @@ function Segment:clear_visualization()
   end
 end
 
+function Segment:draw_arrow(pos, target_pos)
+  local sprite = {
+    sprite = "belt-planner-arrow",
+    x_scale = 0.25,
+    y_scale = 0.25,
+    target = {
+      entity = self.render_entity,
+      offset = { x = pos.x + 0.5 - target_pos.x, y = pos.y + 0.5 - target_pos.y },
+    },
+    surface = self.surface,
+    orientation = pos.direction / 16 - 0.25,
+  }
+  rendering.draw_sprite(sprite)
+end
+
+function Segment:draw_anchor(pos, target_pos)
+  local sprite = {
+    sprite = "belt-planner-anchor",
+    x_scale = 0.25,
+    y_scale = 0.25,
+    target = {
+      entity = self.render_entity,
+      offset = { x = pos.x + 0.5 - target_pos.x, y = pos.y + 0.5 - target_pos.y },
+    },
+    surface = self.surface,
+  }
+  rendering.draw_sprite(sprite)
+end
+
 function Segment:visualize()
   self:clear_visualization()
 
@@ -66,33 +101,18 @@ function Segment:visualize()
   local elements = self:get_elements_with_direction()
   local render_target_pos = self.render_entity.position
 
-  if self.self_id > 1 then
-    local circle = {
-      radius = 0.2,
-      filled = true,
-      color = { r = 1, g = 1, b = 1 },
-      target = {
-        entity = self.render_entity,
-        offset = { x = self.from.x + 0.5 - render_target_pos.x, y = self.from.y + 0.5 - render_target_pos.y },
-      },
-      surface = self.surface,
-    }
-    rendering.draw_circle(circle)
-  end
+  local more_exist = self.self_id < self.max_segment_id
 
-  for _, pos in pairs(elements) do
-    local sprite = {
-      sprite = "belt-planner-chevron",
-      x_scale = 0.25,
-      y_scale = 0.25,
-      target = {
-        entity = self.render_entity,
-        offset = { x = pos.x + 0.5 - render_target_pos.x, y = pos.y + 0.5 - render_target_pos.y },
-      },
-      surface = self.surface,
-      orientation = pos.direction / 16 - 0.25,
-    }
-    rendering.draw_sprite(sprite)
+  for i, pos in pairs(elements) do
+    if (i == #elements and more_exist) then
+      goto continue
+    end
+    if (self:is_single_point() or (i == 1 and self.self_id ~= 1)) then
+      self:draw_anchor(pos, render_target_pos)
+    else
+      self:draw_arrow(pos, render_target_pos)
+    end
+    ::continue::
   end
 end
 
