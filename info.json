@@ -2,7 +2,8 @@
   "name": "belt-planner",
   "version": "1.0.0",
   "title": "Belt Planner",
-  "author": "Your Name",
+  "author": "Miodec",
   "factorio_version": "2.0",
-  "description": "Drag-to-place L-shaped belt tool with ghost preview. Shift+scroll to cycle tiers, Shift+R to rotate knee direction."
+  "description": "Drag-to-place L-shaped belt tool with a preview. Right-click to remove.",
+  "dependencies": ["flib >= 0.16.5"]
 }
