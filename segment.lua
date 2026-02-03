@@ -1,3 +1,5 @@
+local findLDivergencePoint = require("divergence")
+
 ---@class Segment
 ---@field from {x: number, y: number}
 ---@field to {x: number, y: number}
@@ -55,12 +57,15 @@ end
 ---@param pos {x: number, y: number}
 function Segment:update_to(pos, update_orientation)
   -- Early return if position hasn't changed
-  if self.prev_to and self.prev_to.x == pos.x and self.prev_to.y == pos.y then
+  if self.to.x == pos.x and self.to.y == pos.y then
     return
   end
 
+  -- Save old 'to' position and orientation before updating
+  local prev_to = { x = self.to.x, y = self.to.y }
+  local prev_orientation = self.orientation
+  self.prev_to = prev_to
   self.to = pos
-  self.prev_to = { x = pos.x, y = pos.y }
 
   local side_lengths = self:get_side_lengths()
 
@@ -78,9 +83,15 @@ function Segment:update_to(pos, update_orientation)
     end
   end
 
+  -- print("Updated segment to (" .. pos.x .. ", " .. pos.y .. ") with orientation: " .. tostring(self.orientation))
+
+  -- print("Side lengths: x=" .. side_lengths.x .. " y=" .. side_lengths.y)
+
+  -- print("Total length: " .. (side_lengths.x + side_lengths.y))
+
   self:update_midpoint()
-  self:update_nodes()
-  self:visualize()
+  local divergence = self:update_nodes(prev_orientation)
+  self:visualize(divergence and divergence.index or 0)
 end
 
 function Segment:clear_visualization()
@@ -115,12 +126,13 @@ function Segment:draw_anchor(node)
   node.render = rendering.draw_sprite(sprite)
 end
 
-function Segment:visualize()
+function Segment:visualize(divergence_index)
+  divergence_index = divergence_index or 0
   local more_exist = self.self_id < self.max_segment_id
   local target_count = more_exist and (#self.nodes - 1) or #self.nodes
 
-  -- Update existing render objects or create new ones
-  for i = 1, target_count do
+  -- Only update/create render objects from divergence point onwards
+  for i = divergence_index + 1, target_count do
     local node = self.nodes[i]
     local is_anchor = (i == 1 and self.self_id ~= 1)
     local target_pos = { x = node.x + 0.5, y = node.y + 0.5 }
@@ -194,28 +206,57 @@ function Segment:flip_orientation()
   self:visualize()
 end
 
-function Segment:update_nodes()
-  local old_nodes = self.nodes
-  self.nodes = self:get_elements_with_direction()
+--- @return {point: {x: number, y: number}, index: number}|nil
+function Segment:update_nodes(prev_orientation)
+  local divergence = findLDivergencePoint(self.from, self.prev_to, self.to, prev_orientation or self.orientation)
 
-  -- Transfer render objects from matching old nodes
-  for i, new_node in ipairs(self.nodes) do
-    if old_nodes[i] and old_nodes[i].x == new_node.x and old_nodes[i].y == new_node.y then
-      new_node.render = old_nodes[i].render
-      old_nodes[i].render = nil
+  local old_nodes = self.nodes
+  local skip = divergence and divergence.index or 0
+  local new_nodes = self:get_nodes(skip)
+
+  -- print("new nodes count: " .. #new_nodes)
+  -- for i, node in ipairs(new_nodes) do
+  --   print("  " .. i .. ": (" .. node.x .. ", " .. node.y .. ") dir=" .. node.direction)
+  -- end
+
+  -- Build final node list: old nodes up to skip, then new nodes
+  local final_nodes = {}
+
+  -- Keep unchanged nodes before divergence
+  for i = 1, skip do
+    if old_nodes[i] then
+      final_nodes[i] = old_nodes[i]
     end
   end
 
-  -- Clean up any remaining old render objects
-  for _, old_node in ipairs(old_nodes) do
-    if old_node.render and old_node.render.valid then
+  -- Append new nodes after divergence point
+  for i = 1, #new_nodes do
+    final_nodes[skip + i] = new_nodes[i]
+  end
+
+  -- Clean up orphaned old render objects
+  for i = skip + 1, #old_nodes do
+    local old_node = old_nodes[i]
+    if old_node and old_node.render and old_node.render.valid then
       old_node.render.destroy()
     end
   end
+
+  self.nodes = final_nodes
+
+  -- print("Updated nodes count: " .. #self.nodes)
+  -- print("Nodes:")
+  -- for i, node in ipairs(self.nodes) do
+  --   print("  " .. i .. ": (" .. node.x .. ", " .. node.y .. ") dir=" .. node.direction)
+  -- end
+
+  return divergence
 end
 
+---@param skip number? Number of nodes to skip from the start (default 0)
 ---@return {x: number, y: number, direction: defines.direction}[]
-function Segment:get_elements_with_direction()
+function Segment:get_nodes(skip)
+  skip = skip or 0
   local belt_positions = {}
   local from = self.from
   local to = self.to
@@ -227,11 +268,17 @@ function Segment:get_elements_with_direction()
     local y_step = to.y > from.y and 1 or -1
     local x_step = to.x > from.x and 1 or -1
 
+    local vert_len = math.abs(to.y - from.y) + 1
+
     -- Vertical segment
     local y = from.y
+    local idx = 0
     while true do
-      local is_last = (y == to.y) and has_horizontal
-      belt_positions[#belt_positions + 1] = { x = from.x, y = y, direction = is_last and x_dir or y_dir }
+      if idx >= skip then
+        local is_last = (y == to.y) and has_horizontal
+        belt_positions[#belt_positions + 1] = { x = from.x, y = y, direction = is_last and x_dir or y_dir }
+      end
+      idx = idx + 1
       if y == to.y then break end
       y = y + y_step
     end
@@ -240,7 +287,10 @@ function Segment:get_elements_with_direction()
     if has_horizontal then
       local x = from.x + x_step
       while true do
-        belt_positions[#belt_positions + 1] = { x = x, y = to.y, direction = x_dir }
+        if idx >= skip then
+          belt_positions[#belt_positions + 1] = { x = x, y = to.y, direction = x_dir }
+        end
+        idx = idx + 1
         if x == to.x then break end
         x = x + x_step
       end
@@ -254,9 +304,13 @@ function Segment:get_elements_with_direction()
 
     -- Horizontal segment
     local x = from.x
+    local idx = 0
     while true do
-      local is_last = (x == to.x) and has_vertical
-      belt_positions[#belt_positions + 1] = { x = x, y = from.y, direction = is_last and y_dir or x_dir }
+      if idx >= skip then
+        local is_last = (x == to.x) and has_vertical
+        belt_positions[#belt_positions + 1] = { x = x, y = from.y, direction = is_last and y_dir or x_dir }
+      end
+      idx = idx + 1
       if x == to.x then break end
       x = x + x_step
     end
@@ -265,7 +319,10 @@ function Segment:get_elements_with_direction()
     if has_vertical then
       local y = from.y + y_step
       while true do
-        belt_positions[#belt_positions + 1] = { x = to.x, y = y, direction = y_dir }
+        if idx >= skip then
+          belt_positions[#belt_positions + 1] = { x = to.x, y = y, direction = y_dir }
+        end
+        idx = idx + 1
         if y == to.y then break end
         y = y + y_step
       end
