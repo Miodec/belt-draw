@@ -146,52 +146,50 @@ function Segment:get_elements_with_direction()
     local y_dir = to.y > from.y and defines.direction.south or defines.direction.north
     local x_dir = to.x > from.x and defines.direction.east or defines.direction.west
     local has_horizontal = from.x ~= to.x
+    local y_step = to.y > from.y and 1 or -1
+    local x_step = to.x > from.x and 1 or -1
 
-    -- Vertical first
-    if from.y < to.y then
-      for y = from.y, to.y do
-        local is_last = (y == to.y) and has_horizontal
-        table.insert(belt_positions, { x = from.x, y = y, direction = is_last and x_dir or y_dir })
-      end
-    elseif from.y > to.y then
-      for y = from.y, to.y, -1 do
-        local is_last = (y == to.y) and has_horizontal
-        table.insert(belt_positions, { x = from.x, y = y, direction = is_last and x_dir or y_dir })
-      end
+    -- Vertical segment
+    local y = from.y
+    while true do
+      local is_last = (y == to.y) and has_horizontal
+      belt_positions[#belt_positions + 1] = { x = from.x, y = y, direction = is_last and x_dir or y_dir }
+      if y == to.y then break end
+      y = y + y_step
     end
-    if from.x < to.x then
-      for x = from.x, to.x do
-        table.insert(belt_positions, { x = x, y = to.y, direction = x_dir })
-      end
-    elseif from.x > to.x then
-      for x = from.x, to.x, -1 do
-        table.insert(belt_positions, { x = x, y = to.y, direction = x_dir })
+
+    -- Horizontal segment
+    if has_horizontal then
+      local x = from.x + x_step
+      while true do
+        belt_positions[#belt_positions + 1] = { x = x, y = to.y, direction = x_dir }
+        if x == to.x then break end
+        x = x + x_step
       end
     end
   else
     local x_dir = to.x > from.x and defines.direction.east or defines.direction.west
     local y_dir = to.y > from.y and defines.direction.south or defines.direction.north
     local has_vertical = from.y ~= to.y
+    local x_step = to.x > from.x and 1 or -1
+    local y_step = to.y > from.y and 1 or -1
 
-    -- Horizontal first
-    if from.x < to.x then
-      for x = from.x, to.x do
-        local is_last = (x == to.x) and has_vertical
-        table.insert(belt_positions, { x = x, y = from.y, direction = is_last and y_dir or x_dir })
-      end
-    elseif from.x > to.x then
-      for x = from.x, to.x, -1 do
-        local is_last = (x == to.x) and has_vertical
-        table.insert(belt_positions, { x = x, y = from.y, direction = is_last and y_dir or x_dir })
-      end
+    -- Horizontal segment
+    local x = from.x
+    while true do
+      local is_last = (x == to.x) and has_vertical
+      belt_positions[#belt_positions + 1] = { x = x, y = from.y, direction = is_last and y_dir or x_dir }
+      if x == to.x then break end
+      x = x + x_step
     end
-    if from.y < to.y then
-      for y = from.y, to.y do
-        table.insert(belt_positions, { x = to.x, y = y, direction = y_dir })
-      end
-    elseif from.y > to.y then
-      for y = from.y, to.y, -1 do
-        table.insert(belt_positions, { x = to.x, y = y, direction = y_dir })
+
+    -- Vertical segment
+    if has_vertical then
+      local y = from.y + y_step
+      while true do
+        belt_positions[#belt_positions + 1] = { x = to.x, y = y, direction = y_dir }
+        if y == to.y then break end
+        y = y + y_step
       end
     end
   end
