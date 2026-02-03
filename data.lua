@@ -145,34 +145,4 @@ data:extend({
     size = 64,
     priority = "extra-high-no-scale"
   }
-
-  -- {
-  --   type = "simple-entity-with-force",
-  --   name = "bp-transport-belt",
-  --   icon = "__base__/graphics/icons/transport-belt.png",
-  --   icon_size = 64,
-  --   flags = { "placeable-neutral", "player-creation" },
-  --   collision_box = { { -0.4, -0.4 }, { 0.4, 0.4 } },
-  --   selection_box = { { -0.5, -0.5 }, { 0.5, 0.5 } },
-  --   picture = {
-  --     layers = {
-  --       {
-  --         filename = "__base__/graphics/entity/transport-belt/transport-belt.png",
-  --         priority = "extra-high",
-  --         width = 64,
-  --         height = 64,
-  --         frame_count = 1,
-  --         hr_version = {
-  --           filename = "__base__/graphics/entity/transport-belt/hr-transport-belt.png",
-  --           priority = "extra-high",
-  --           width = 128,
-  --           height = 128,
-  --           scale = 0.5,
-  --           frame_count = 1
-  --         }
-  --       }
-  --     }
-  --   },
-  --   minable = { mining_time = 0.1, result = nil }
-  -- }
 })
