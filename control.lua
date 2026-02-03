@@ -15,7 +15,6 @@ storage = storage
 
 -- Initialize global state
 script.on_init(function()
-  storage.rendering_target = nil
   storage.auto_orientation = true
   storage.starting_direction = nil
   storage.dragging = false
@@ -25,7 +24,6 @@ script.on_init(function()
 end)
 
 script.on_configuration_changed(function()
-  storage.rendering_target = storage.rendering_target or nil
   if storage.auto_orientation == nil then
     storage.auto_orientation = true
   end
@@ -43,10 +41,9 @@ local function get_current_segment()
   return storage.segments[storage.current_segment_index]
 end
 
-local function clear_rendering()
-  if storage.rendering_target ~= nil then
-    storage.rendering_target.destroy()
-    storage.rendering_target = nil
+local function clear_visualizations()
+  for _, segment in pairs(storage.segments) do
+    segment:clear_visualization()
   end
 end
 
@@ -133,52 +130,9 @@ local function place_ghost(player, item, pos)
 end
 
 local function visualise_segments(player)
-  if storage.rendering_target == nil then
-    storage.rendering_target = player.surface.create_entity({
-      name = "belt-planner-dummy-entity",
-      position = { x = 0, y = 0 },
-      force = player.force,
-      player = player,
-    })
-  end
-
-  for i, segment in pairs(storage.segments) do
-    local elements = segment:get_elements_with_direction()
-    local rendering_target_pos = storage.rendering_target.position
-    local surface = player.surface
-
-    if i > 1 then
-      -- visualise anchor with a dot
-      local circle = {
-        radius = 0.2,
-        filled = true,
-        color = { r = 1, g = 1, b = 1 },
-        target = {
-          entity = storage.rendering_target,
-          offset = { x = segment.from.x + 0.5 - rendering_target_pos.x, y = segment.from.y + 0.5 - rendering_target_pos.y },
-        },
-        surface = surface,
-        players = { player },
-      }
-      rendering.draw_circle(circle)
-    end
-
-    for _, pos in pairs(elements) do
-      local sprite = {
-        sprite = "belt-planner-chevron",
-        x_scale = 0.25,
-        y_scale = 0.25,
-        target = {
-          entity = storage.rendering_target,
-          offset = { x = pos.x + 0.5 - rendering_target_pos.x, y = pos.y + 0.5 - rendering_target_pos.y },
-        },
-        surface = surface,
-        players = { player },
-        orientation = pos.direction / 16 - 0.25,
-      }
-      rendering.draw_sprite(sprite)
-    end
-    render_line(player, segment)
+  local current_segment = get_current_segment()
+  if current_segment ~= nil then
+    current_segment:visualize()
   end
 end
 
@@ -258,20 +212,16 @@ local function place(player, mode, pos)
   end
 end
 
+local function on_drag_start(player, position)
+  local pos = { x = math.floor(position.x), y = math.floor(position.y) }
+  local segment = Segment.new(pos, player.surface, #storage.segments + 1)
+  table.insert(storage.segments, segment)
+  storage.current_segment_index = #storage.segments
 
-local function on_drag(player, position)
-  local current_segment = get_current_segment()
+  print("Created new segment starting at (" .. pos.x .. "," .. pos.y .. ")")
+end
 
-  if current_segment == nil then
-    local pos = { x = math.floor(position.x), y = math.floor(position.y) }
-    local segment = Segment.new(pos)
-    table.insert(storage.segments, segment)
-    storage.current_segment_index = #storage.segments
-
-    print("Created new segment starting at (" .. pos.x .. "," .. pos.y .. ")")
-    return
-  end
-
+local function on_drag(player, position, current_segment)
   local pos = { x = math.floor(position.x), y = math.floor(position.y) }
   current_segment:update_to(pos)
   -- if current_segment.orientation == nil then
@@ -295,16 +245,15 @@ local function on_drag(player, position)
     end
   end
 
-  clear_rendering()
   visualise_segments(player)
 end
 
 local function on_release_cleanup(player, setTool)
+  clear_visualizations()
   storage.segments = {}
   storage.current_segment_index = nil
   storage.auto_orientation = true
   storage.dragging = false
-  clear_rendering()
   if setTool == nil or setTool == true then
     set_tool(player)
   end
@@ -438,7 +387,6 @@ script.on_event("belt-planner-flip-orientation", function(event)
   if current_segment == nil then return end
 
   current_segment:flip_orientation()
-  clear_rendering()
   visualise_segments(player)
 
   player.create_local_flying_text({
@@ -457,11 +405,10 @@ script.on_event("belt-planner-anchor", function(event)
   if current_segment == nil then return end
 
   local pos = current_segment.to
-  local segment = Segment.new(pos)
+  local segment = Segment.new(pos, player.surface, #storage.segments + 1)
   table.insert(storage.segments, segment)
   storage.current_segment_index = #storage.segments
 
-  clear_rendering()
   visualise_segments(player)
 
   player.create_local_flying_text({
@@ -481,7 +428,15 @@ script.on_event(defines.events.on_pre_build, function(event)
   storage.dragging = true
   storage.starting_direction = event.direction or defines.direction.north
   set_tool(player)
-  on_drag(player, event.position)
+
+  local current_segment = get_current_segment()
+
+  if current_segment == nil then
+    on_drag_start(player, event.position)
+    return
+  else
+    on_drag(player, event.position, current_segment)
+  end
 end)
 
 script.on_event(defines.events.on_built_entity, function(event)

@@ -3,17 +3,25 @@
 ---@field to {x: number, y: number}
 ---@field midpoint {x: number, y: number}
 ---@field orientation "horizontal"|"vertical"|nil
+---@field self_id number|nil
+---@field render_entity LuaEntity|nil
+---@field surface LuaSurface
 local Segment = {}
 Segment.__index = Segment
 
 ---@param from {x: number, y: number}
+---@param surface LuaSurface
+---@param self_id number|nil
 ---@return Segment
-function Segment.new(from)
+function Segment.new(from, surface, self_id)
   local self = setmetatable({}, Segment)
   self.from = from
   self.to = from
   self.midpoint = { x = from.x, y = from.y }
   self.orientation = nil
+  self.self_id = self_id or 1
+  self.render_entity = nil
+  self.surface = surface
   return self
 end
 
@@ -36,6 +44,56 @@ function Segment:update_to(pos)
   end
 
   self:update_midpoint()
+end
+
+function Segment:clear_visualization()
+  if self.render_entity ~= nil then
+    self.render_entity.destroy()
+    self.render_entity = nil
+  end
+end
+
+function Segment:visualize()
+  self:clear_visualization()
+
+  if self.render_entity == nil then
+    self.render_entity = self.surface.create_entity({
+      name = "belt-planner-dummy-entity",
+      position = { x = 0, y = 0 },
+    })
+  end
+
+  local elements = self:get_elements_with_direction()
+  local render_target_pos = self.render_entity.position
+
+  if self.self_id > 1 then
+    local circle = {
+      radius = 0.2,
+      filled = true,
+      color = { r = 1, g = 1, b = 1 },
+      target = {
+        entity = self.render_entity,
+        offset = { x = self.from.x + 0.5 - render_target_pos.x, y = self.from.y + 0.5 - render_target_pos.y },
+      },
+      surface = self.surface,
+    }
+    rendering.draw_circle(circle)
+  end
+
+  for _, pos in pairs(elements) do
+    local sprite = {
+      sprite = "belt-planner-chevron",
+      x_scale = 0.25,
+      y_scale = 0.25,
+      target = {
+        entity = self.render_entity,
+        offset = { x = pos.x + 0.5 - render_target_pos.x, y = pos.y + 0.5 - render_target_pos.y },
+      },
+      surface = self.surface,
+      orientation = pos.direction / 16 - 0.25,
+    }
+    rendering.draw_sprite(sprite)
+  end
 end
 
 function Segment:get_centered_positions()
