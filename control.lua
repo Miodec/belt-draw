@@ -304,7 +304,7 @@ script.on_event("belt-planner-flip-orientation", function(event)
   current_segment:flip_orientation()
 
   player.create_local_flying_text({
-    text = "Flipped",
+    text = { "belt-planner.flipped" },
     create_at_cursor = true
   })
 end)
@@ -329,7 +329,7 @@ script.on_event("belt-planner-anchor", function(event)
   end
 
   player.create_local_flying_text({
-    text = "Anchored",
+    text = { "belt-planner.anchored" },
     create_at_cursor = true
   })
 end)
