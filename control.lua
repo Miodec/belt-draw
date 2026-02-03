@@ -41,11 +41,6 @@ local function get_current_segment()
   return storage.segments[storage.current_segment_index]
 end
 
-local function clear_visualizations()
-  for _, segment in pairs(storage.segments) do
-    segment:clear_visualization()
-  end
-end
 
 local function is_bp_tool(tool_name)
   return tool_name == "belt-planner" or tool_name == "belt-planner-preview"
@@ -95,12 +90,6 @@ local function place_ghost(player, item, pos)
   })
 end
 
-local function visualise_segments(player)
-  local current_segment = get_current_segment()
-  if current_segment ~= nil then
-    current_segment:visualize()
-  end
-end
 
 local function place_from_inventory(player, item, pos)
   local inventory = player.get_inventory(defines.inventory.character_main)
@@ -185,11 +174,10 @@ end
 
 local function on_drag_start(player, position)
   local pos = { x = math.floor(position.x), y = math.floor(position.y) }
-  local segment = Segment.new(pos, player.surface, #storage.segments + 1, #storage.segments + 1)
+  local segment = Segment.new(pos, storage.starting_direction, player.surface, #storage.segments + 1,
+    #storage.segments + 1)
   table.insert(storage.segments, segment)
   storage.current_segment_index = #storage.segments
-
-  visualise_segments(player)
 
   print("Created new segment starting at (" .. pos.x .. "," .. pos.y .. ")")
 end
@@ -197,11 +185,12 @@ end
 local function on_drag(player, position, current_segment)
   local pos = { x = math.floor(position.x), y = math.floor(position.y) }
   current_segment:update_to(pos, storage.auto_orientation)
-  current_segment:visualize()
 end
 
 local function on_release_cleanup(player, setTool)
-  clear_visualizations()
+  for _, segment in pairs(storage.segments) do
+    segment:destroy()
+  end
   storage.segments = {}
   storage.current_segment_index = nil
   storage.auto_orientation = true
@@ -263,10 +252,7 @@ local function on_release(player, event, mode)
 
     print("Horizontal length: " .. segment_side_lengths.x .. ", Vertical length: " .. segment_side_lengths.y)
 
-
-    local belt_positions = segment:get_elements_with_direction()
-
-    for _, pos in pairs(belt_positions) do
+    for _, pos in pairs(segment.nodes) do
       place(player, mode, pos)
     end
     on_release_cleanup(player)
@@ -337,7 +323,6 @@ script.on_event("belt-planner-flip-orientation", function(event)
   if current_segment == nil then return end
 
   current_segment:flip_orientation()
-  visualise_segments(player)
 
   player.create_local_flying_text({
     text = "Flipped",
@@ -355,18 +340,14 @@ script.on_event("belt-planner-anchor", function(event)
   if current_segment == nil then return end
 
   local pos = current_segment.to
-  local segment = Segment.new(pos, player.surface, #storage.segments + 1, #storage.segments + 1)
+  local segment = Segment.new(pos, storage.starting_direction, player.surface, #storage.segments + 1,
+    #storage.segments + 1)
   table.insert(storage.segments, segment)
   storage.current_segment_index = #storage.segments
 
   for _, seg in pairs(storage.segments) do
     seg:update_max_segment_id(#storage.segments)
   end
-
-  -- visualise the previous segment to hide the last arrow
-  storage.segments[#storage.segments - 1]:visualize()
-
-  visualise_segments(player)
 
   player.create_local_flying_text({
     text = "Anchored",

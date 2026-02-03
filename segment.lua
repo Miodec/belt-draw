@@ -4,7 +4,7 @@
 ---@field midpoint {x: number, y: number}
 ---@field orientation "horizontal"|"vertical"|nil
 ---@field self_id number|nil
----@field render_entity LuaEntity|nil
+---@field nodes {x: number, y: number, direction: defines.direction, render: LuaRenderObject?}[]
 ---@field surface LuaSurface
 local Segment = {}
 Segment.__index = Segment
@@ -14,7 +14,7 @@ Segment.__index = Segment
 ---@param self_id number
 ---@param max_segment_id number|
 ---@return Segment
-function Segment.new(from, surface, self_id, max_segment_id)
+function Segment.new(from, first_node_direction, surface, self_id, max_segment_id)
   local self = setmetatable({}, Segment)
   self.from = from
   self.to = from
@@ -22,13 +22,28 @@ function Segment.new(from, surface, self_id, max_segment_id)
   self.orientation = nil
   self.self_id = self_id or 1
   self.max_segment_id = max_segment_id
-  self.render_entity = nil
+  self.nodes = {
+    {
+      x = from.x,
+      y = from.y,
+      direction = first_node_direction,
+      render = nil,
+    }
+  }
   self.surface = surface
+  self:visualize()
   return self
+end
+
+function Segment:destroy()
+  self:clear_visualization()
 end
 
 function Segment:update_max_segment_id(max_segment_id)
   self.max_segment_id = max_segment_id
+  if self.self_id == max_segment_id - 1 then
+    self:visualize()
+  end
 end
 
 function Segment:update_midpoint()
@@ -57,68 +72,56 @@ function Segment:update_to(pos, update_orientation)
   end
 
   self:update_midpoint()
-  -- self:visualize()
+  self:update_nodes()
+  self:visualize()
 end
 
 function Segment:clear_visualization()
-  if self.render_entity ~= nil then
-    self.render_entity.destroy()
-    self.render_entity = nil
+  for _, node in pairs(self.nodes) do
+    if node.render ~= nil then
+      node.render.destroy()
+      node.render = nil
+    end
   end
 end
 
-function Segment:draw_arrow(pos, target_pos)
+function Segment:draw_arrow(node)
   local sprite = {
     sprite = "belt-planner-arrow",
     x_scale = 0.25,
     y_scale = 0.25,
-    target = {
-      entity = self.render_entity,
-      offset = { x = pos.x + 0.5 - target_pos.x, y = pos.y + 0.5 - target_pos.y },
-    },
+    target = { x = node.x + 0.5, y = node.y + 0.5 },
     surface = self.surface,
-    orientation = pos.direction / 16 - 0.25,
+    orientation = node.direction / 16 - 0.25,
   }
-  rendering.draw_sprite(sprite)
+  node.render = rendering.draw_sprite(sprite)
 end
 
-function Segment:draw_anchor(pos, target_pos)
+function Segment:draw_anchor(node)
   local sprite = {
     sprite = "belt-planner-anchor",
     x_scale = 0.25,
     y_scale = 0.25,
-    target = {
-      entity = self.render_entity,
-      offset = { x = pos.x + 0.5 - target_pos.x, y = pos.y + 0.5 - target_pos.y },
-    },
+    target = { x = node.x + 0.5, y = node.y + 0.5 },
     surface = self.surface,
   }
-  rendering.draw_sprite(sprite)
+  node.render = rendering.draw_sprite(sprite)
 end
 
 function Segment:visualize()
   self:clear_visualization()
 
-  if self.render_entity == nil then
-    self.render_entity = self.surface.create_entity({
-      name = "belt-planner-dummy-entity",
-      position = { x = 0, y = 0 },
-    })
-  end
-
-  local elements = self:get_elements_with_direction()
-  local render_target_pos = self.render_entity.position
 
   local more_exist = self.self_id < self.max_segment_id
 
-  for i, pos in pairs(elements) do
-    if (i == #elements and more_exist) then
+  for i, node in pairs(self.nodes) do
+    if (i == #self.nodes and more_exist) then
       goto continue
     end
-    if (self:is_single_point() or (i == 1 and self.self_id ~= 1)) then
-      self:draw_anchor(pos, render_target_pos)
+    if (i == 1 and self.self_id ~= 1) then
+      self:draw_anchor(node)
     else
-      self:draw_arrow(pos, render_target_pos)
+      self:draw_arrow(node)
     end
     ::continue::
   end
@@ -162,6 +165,13 @@ function Segment:flip_orientation()
     self.orientation = "horizontal"
   end
   self:update_midpoint()
+  self:update_nodes()
+  self:visualize()
+end
+
+function Segment:update_nodes()
+  self:clear_visualization()
+  self.nodes = self:get_elements_with_direction()
 end
 
 ---@return {x: number, y: number, direction: defines.direction}[]
@@ -223,9 +233,5 @@ function Segment:get_elements_with_direction()
   end
   return belt_positions
 end
-
--- function Segment:set_orientation(orientation)
---   self.orientation = orientation
--- end
 
 return Segment
