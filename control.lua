@@ -83,40 +83,6 @@ local function set_tool(player)
   end
 end
 
-local function render_line(player, segment)
-  -- draw 2 lines to make an L shape
-  local centered_positions = segment:get_centered_positions()
-  local mid_pos = segment.midpoint
-  rendering.draw_line({
-    color = { r = 1, g = 1, b = 1, a = 0.1 },
-    width = 1,
-    from = {
-      entity = storage.rendering_target,
-      offset = { x = centered_positions.from.x - storage.rendering_target.position.x, y = centered_positions.from.y - storage.rendering_target.position.y },
-    },
-    to = {
-      entity = storage.rendering_target,
-      offset = { x = mid_pos.x + 0.5 - storage.rendering_target.position.x, y = mid_pos.y + 0.5 - storage.rendering_target.position.y },
-    },
-    surface = player.surface,
-    players = { player },
-  })
-  rendering.draw_line({
-    color = { r = 1, g = 1, b = 1, a = 0.1 },
-    width = 1,
-    from = {
-      entity = storage.rendering_target,
-      offset = { x = mid_pos.x + 0.5 - storage.rendering_target.position.x, y = mid_pos.y + 0.5 - storage.rendering_target.position.y },
-    },
-    to = {
-      entity = storage.rendering_target,
-      offset = { x = centered_positions.to.x - storage.rendering_target.position.x, y = centered_positions.to.y - storage.rendering_target.position.y },
-    },
-    surface = player.surface,
-    players = { player },
-  })
-end
-
 local function place_ghost(player, item, pos)
   player.surface.create_entity({
     name = "entity-ghost",
