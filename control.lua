@@ -182,7 +182,7 @@ local function on_drag(player, position, current_segment)
   current_segment:update_to(pos, storage.auto_orientation)
 end
 
-local function on_release_cleanup(player, setTool)
+local function cleanup(player, setTool)
   for _, segment in pairs(storage.segments) do
     segment:destroy()
   end
@@ -216,7 +216,7 @@ local function on_release(player, event, mode)
     for _, g in pairs(ghosts) do
       g.destroy()
     end
-    on_release_cleanup(player)
+    cleanup(player)
     return
   end
 
@@ -227,14 +227,14 @@ local function on_release(player, event, mode)
         y = segment.from.y,
         direction = storage.starting_direction or defines.direction.north
       })
-      on_release_cleanup(player)
+      cleanup(player)
       return
     end
 
     for _, pos in pairs(segment.nodes) do
       place(player, mode, pos)
     end
-    on_release_cleanup(player)
+    cleanup(player)
   end
 end
 
@@ -288,7 +288,7 @@ script.on_event(defines.events.on_player_cursor_stack_changed, function(event)
       player.character_build_distance_bonus = storage.player_reach
       storage.player_reach = nil
     end
-    on_release_cleanup(player, false)
+    cleanup(player, false)
   end
 end)
 
