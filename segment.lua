@@ -1,5 +1,8 @@
 local findLDivergencePoint = require("divergence")
 
+---@alias Node {x: number, y: number, direction: defines.direction, render: LuaRenderObject? , belt: "above"|"down"|"up"|"under"?}
+
+
 ---@class Segment
 ---@field from {x: number, y: number}
 ---@field to {x: number, y: number}
@@ -7,7 +10,7 @@ local findLDivergencePoint = require("divergence")
 ---@field midpoint {x: number, y: number}
 ---@field orientation "horizontal"|"vertical"|nil
 ---@field self_id number|nil
----@field nodes {x: number, y: number, direction: defines.direction, render: LuaRenderObject?}[]
+---@field nodes Node[]
 ---@field surface LuaSurface
 local Segment = {}
 Segment.__index = Segment
@@ -245,7 +248,7 @@ function Segment:update_nodes(prev_orientation)
 end
 
 ---@param skip number? Number of nodes to skip from the start (default 0)
----@return {x: number, y: number, direction: defines.direction, render: nil}[]
+---@return Node[]
 function Segment:get_nodes(skip)
   skip = skip or 0
   local belt_positions = {}
