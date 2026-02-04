@@ -232,14 +232,18 @@ script.on_event(defines.events.on_player_cursor_stack_changed, function(event)
   end
 
   if is_holding_bp_tool(player) then
-    if storage.player_reach == nil then
-      storage.player_reach = player.character_build_distance_bonus
+    if player.character then
+      if storage.player_reach == nil then
+        storage.player_reach = player.character_build_distance_bonus
+      end
+      player.character_build_distance_bonus = 1000000
     end
-    player.character_build_distance_bonus = 1000000
   else
-    if storage.player_reach then
-      player.character_build_distance_bonus = storage.player_reach
-      storage.player_reach = nil
+    if player.character then
+      if storage.player_reach then
+        player.character_build_distance_bonus = storage.player_reach
+        storage.player_reach = nil
+      end
     end
     cleanup(player, false)
   end
