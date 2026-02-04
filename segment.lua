@@ -1,7 +1,8 @@
 local findLDivergencePoint = require("divergence")
 
+---@alias BeltType "above"|"down"|"up"|"under"|"under_entity"|"blocked"|"above_connect"
 ---@alias Position {x: number, y: number}
----@alias Node {x: number, y: number, direction: defines.direction, render: LuaRenderObject? , belt_type: "above"|"down"|"up"|"under"|"blocked"|nil}
+---@alias Node {x: number, y: number, direction: defines.direction, render: LuaRenderObject? , belt_type: BeltType|nil}
 
 
 ---@class Segment
@@ -223,6 +224,8 @@ function Segment:render_node(node)
     sprite_name = "belt-draw-entryexit"
   elseif node.belt_type == "blocked" then
     sprite_name = "belt-draw-nil"
+  elseif node.belt_type == "above_connect" then
+    sprite_name = "belt-draw-under"
   end
 
   if not sprite_name then
@@ -461,7 +464,7 @@ end
 ---@return boolean
 local function is_underground_type(node)
   local t = node.belt_type
-  return t == "down" or t == "under" or t == "up"
+  return t == "down" or t == "under" or t == "under_entity" or t == "up"
 end
 
 function Segment:invalidate_underground(start_node)
@@ -506,8 +509,10 @@ function Segment:invalidate_underground(start_node)
   for i = min_idx, max_idx do
     if self.nodes[i].belt_type == "down" or self.nodes[i].belt_type == "up" then
       self.nodes[i].belt_type = "above"
-    elseif self.nodes[i].belt_type == "under" then
+    elseif self.nodes[i].belt_type == "under_entity" then
       self.nodes[i].belt_type = "blocked"
+    elseif self.nodes[i].belt_type == "under" then
+      self.nodes[i].belt_type = "above"
     end
     self:update_render(self.nodes[i])
   end
