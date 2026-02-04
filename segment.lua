@@ -60,27 +60,33 @@ function Segment:find_entity_at_node(node)
 end
 
 ---@param entity LuaEntity
----@param direction defines.direction
----@return "full"|"none"|"partial"
-function Segment:is_compatible_belt(entity, direction)
+---@param node Node
+---@return "replace"|"block"|"connect"
+function Segment:get_compatibility(entity, node)
   local type = entity.type == "entity-ghost" and entity.ghost_type or entity.type
   if type ~= "transport-belt" and type ~= "underground-belt" and type ~= "splitter" then
-    return "none"
+    return "block"
   end
 
-  if type == "splitter" or type == "underground-belt" then
-    return "partial"
+  if (type == "splitter" or type == "underground-belt") then
+    if (entity.direction == node.direction) then
+      -- if (entity.direction == node.direction or entity.direction == (node.direction + 8) % 16) then
+      return "connect"
+    else
+      return "block"
+    end
   end
 
-  if entity.direction == direction then
-    return "full"
+
+  if type == "transport-belt" then
+    if (entity.belt_shape == "straight" and entity.belt_neighbours.outputs[1] and entity.direction ~= node.direction and entity.direction ~= (node.direction + 8) % 16) then
+      return "block"
+    else
+      return "replace"
+    end
   end
 
-  if entity.belt_shape == "straight" and entity.belt_neighbours.inputs[1] and entity.belt_neighbours.outputs[1] then
-    return "none"
-  end
-
-  return "full"
+  return "replace"
 end
 
 ---@param node Node
