@@ -61,22 +61,26 @@ end
 
 ---@param entity LuaEntity
 ---@param direction defines.direction
----@return boolean
+---@return "full"|"none"|"partial"
 function Segment:is_compatible_belt(entity, direction)
   local type = entity.type == "entity-ghost" and entity.ghost_type or entity.type
-  if type ~= "transport-belt" then
-    return false
+  if type ~= "transport-belt" and type ~= "underground-belt" and type ~= "splitter" then
+    return "none"
+  end
+
+  if type == "splitter" or type == "underground-belt" then
+    return "partial"
   end
 
   if entity.direction == direction then
-    return true
+    return "full"
   end
 
   if entity.belt_shape == "straight" and entity.belt_neighbours.inputs[1] and entity.belt_neighbours.outputs[1] then
-    return false
+    return "none"
   end
 
-  return true
+  return "full"
 end
 
 ---@param node Node
@@ -533,8 +537,13 @@ function Segment:plan_belts(skip)
     local entity = self:find_entity_at_node(node)
     if entity then
       -- If it's a belt going in same direction, connect to it instead of blocking
-      if self:is_compatible_belt(entity, node.direction) then
+      local compat = self:is_compatible_belt(entity, node.direction)
+      if compat == "full" then
         node.belt_type = "above"
+        goto continue
+      end
+      if compat == "partial" then
+        node.belt_type = "under"
         goto continue
       end
 
@@ -571,7 +580,7 @@ function Segment:plan_belts(skip)
       local prev_entity = self:find_entity_at_node(prev)
       if prev_entity then
         -- Don't consider it blocked if it's a compatible belt
-        prev_is_blocked = not self:is_compatible_belt(prev_entity, prev.direction)
+        prev_is_blocked = not self:is_compatible_belt(prev_entity, prev.direction) == "full"
       end
     end
 
