@@ -281,11 +281,10 @@ function Segment:update_nodes(skip)
     local target_idx = skip + i
     if self.nodes[target_idx] then
       -- Reuse existing table
-      local node = self.nodes[target_idx]
-      node.x = new_nodes[i].x
-      node.y = new_nodes[i].y
-      node.direction = new_nodes[i].direction
-      -- Keep existing render object
+      local new_node = new_nodes[i]
+      new_node.render = self.nodes[target_idx].render
+      -- Update existing node
+      self.nodes[target_idx] = new_node
     else
       -- Append new node
       self.nodes[target_idx] = new_nodes[i]
