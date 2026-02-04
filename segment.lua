@@ -216,20 +216,24 @@ function Segment:render_anchor(node)
   node.render = rendering.draw_sprite(sprite)
 end
 
+local function get_sprite_name_for_belt_type(belt_type)
+  if belt_type == "above" then
+    return "belt-draw-above"
+  elseif belt_type == "under" or belt_type == "under_entity" then
+    return "belt-draw-under"
+  elseif belt_type == "down" or belt_type == "up" then
+    return "belt-draw-entryexit"
+  elseif belt_type == "blocked" then
+    return "belt-draw-blocked"
+  else
+    return "belt-draw-empty"
+  end
+end
+
 ---@param node Node
 function Segment:render_node(node)
   local sprite_name = nil
-  if node.belt_type == "above" then
-    sprite_name = "belt-draw-above"
-  elseif node.belt_type == "under" then
-    sprite_name = "belt-draw-under"
-  elseif node.belt_type == "down" or node.belt_type == "up" then
-    sprite_name = "belt-draw-entryexit"
-  elseif node.belt_type == "blocked" then
-    sprite_name = "belt-draw-nil"
-  elseif node.belt_type == "above_connect" then
-    sprite_name = "belt-draw-under"
-  end
+  sprite_name = get_sprite_name_for_belt_type(node.belt_type)
 
   if not sprite_name then
     return
@@ -259,15 +263,8 @@ function Segment:update_render(node)
   end
 
   node.render.orientation = node.direction * 0.0625 - 0.25
-  if node.belt_type == "above" then
-    node.render.sprite = "belt-draw-above"
-  elseif node.belt_type == "under" then
-    node.render.sprite = "belt-draw-under"
-  elseif node.belt_type == "down" or node.belt_type == "up" then
-    node.render.sprite = "belt-draw-entryexit"
-  elseif node.belt_type == "blocked" or node.belt_type == nil then
-    node.render.sprite = "belt-draw-nil"
-  end
+  local sprite_name = get_sprite_name_for_belt_type(node.belt_type)
+  node.render.sprite = sprite_name
 end
 
 ---@param divergence_index number?
