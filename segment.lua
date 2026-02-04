@@ -114,7 +114,7 @@ function Segment:draw_arrow(node)
     sprite = "belt-planner-arrow",
     x_scale = 0.25,
     y_scale = 0.25,
-    target = { x = node.x + 0.5, y = node.y + 0.5 },
+    target = { x = node.x, y = node.y },
     surface = self.surface,
     orientation = node.direction * 0.0625 - 0.25,
   }
@@ -126,7 +126,7 @@ function Segment:draw_anchor(node)
     sprite = "belt-planner-anchor",
     x_scale = 0.25,
     y_scale = 0.25,
-    target = { x = node.x + 0.5, y = node.y + 0.5 },
+    target = { x = node.x, y = node.y },
     surface = self.surface,
   }
   node.render = rendering.draw_sprite(sprite)
@@ -144,7 +144,7 @@ function Segment:visualize(divergence_index)
 
     if node.render and node.render.valid then
       -- Update existing render object
-      node.render.target = { x = node.x + 0.5, y = node.y + 0.5 }
+      node.render.target = { x = node.x, y = node.y }
       if not is_anchor then
         node.render.orientation = node.direction * 0.0625 - 0.25
       end
@@ -166,19 +166,6 @@ function Segment:visualize(divergence_index)
       node.render = nil
     end
   end
-end
-
-function Segment:get_centered_positions()
-  return {
-    from = {
-      x = (self.from.x + 0.5),
-      y = (self.from.y + 0.5)
-    },
-    to = {
-      x = (self.to.x + 0.5),
-      y = (self.to.y + 0.5)
-    }
-  }
 end
 
 ---@return number

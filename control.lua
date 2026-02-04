@@ -84,7 +84,7 @@ local function place_ghost(player, item, pos)
   player.surface.create_entity({
     name = "entity-ghost",
     ghost_name = item,
-    position = { x = pos.x + 0.5, y = pos.y + 0.5 },
+    position = { x = pos.x, y = pos.y },
     direction = pos.direction,
     force = player.force,
     player = player,
@@ -113,7 +113,7 @@ local function place_from_inventory(player, item, pos)
   if count > 0 and can_reach then
     player.surface.create_entity({
       name = item,
-      position = { x = pos.x + 0.5, y = pos.y + 0.5 },
+      position = { x = pos.x, y = pos.y },
       direction = pos.direction,
       force = player.force,
       player = player,
@@ -142,7 +142,7 @@ local function place(player, mode, pos)
 
 
   local existing = player.surface.find_entities_filtered({
-    position = { x = pos.x + 0.5, y = pos.y + 0.5 },
+    position = { x = pos.x, y = pos.y },
     radius = 0.5,
   })[1]
 
@@ -322,7 +322,7 @@ script.on_event(defines.events.on_pre_build, function(event)
   storage.starting_direction = event.direction or defines.direction.north
   set_tool(player)
 
-  local pos = { x = math.floor(event.position.x), y = math.floor(event.position.y) }
+  local pos = { x = event.position.x, y = event.position.y }
 
   if storage.current_segment == nil then
     add_segment(pos, player.surface)
