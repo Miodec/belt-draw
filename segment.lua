@@ -280,9 +280,11 @@ function Segment:update_nodes(skip)
   for i = 1, #new_nodes do
     local target_idx = skip + i
     if self.nodes[target_idx] then
-      -- Reuse existing table
+      -- Reuse existing table and preserve belt_type
+      local old_belt_type = self.nodes[target_idx].belt_type
       local new_node = new_nodes[i]
       new_node.render = self.nodes[target_idx].render
+      new_node.belt_type = old_belt_type
       -- Update existing node
       self.nodes[target_idx] = new_node
     else
@@ -439,9 +441,12 @@ function Segment:plan_belts(skip)
   for i = #self.nodes, (skip or 0) + 1, -1 do
     local node = self.nodes[i]
 
+    -- if we go backwards and find a trailing underground, invalidate it
     if node.belt_type == "under" and i == #self.nodes then
       -- invalidate trailing underground
       self:invalidate_underground(node)
+      -- Re-fetch node after invalidation
+      node = self.nodes[i]
     end
 
 
@@ -483,6 +488,7 @@ function Segment:plan_belts(skip)
         end
       end
 
+      ---@type number?
       local entry_index = nil
       local underground_length = 0
       if previous_node.belt_type == nil then
@@ -538,9 +544,10 @@ function Segment:plan_belts(skip)
         -- Set exit node to up
         self.nodes[entry_index + underground_length + 1].belt_type = "up"
         self:update_render(self.nodes[entry_index + underground_length + 1])
-      end
 
-      print(entry_index, underground_length)
+        -- Skip to entry node to avoid reprocessing
+        i = entry_index + 1
+      end
     end
     ::continue::
   end
