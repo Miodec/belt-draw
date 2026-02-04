@@ -1,13 +1,14 @@
 local findLDivergencePoint = require("divergence")
 
+---@alias Position {x: number, y: number}
 ---@alias Node {x: number, y: number, direction: defines.direction, render: LuaRenderObject? , belt_type: "above"|"down"|"up"|"under"?}
 
 
 ---@class Segment
----@field from {x: number, y: number}
----@field to {x: number, y: number}
----@field prev_to {x: number, y: number}?
----@field midpoint {x: number, y: number}
+---@field from Position
+---@field to Position
+---@field prev_to Position?
+---@field midpoint Position
 ---@field orientation "horizontal"|"vertical"|nil
 ---@field self_id number|nil
 ---@field nodes Node[]
@@ -16,7 +17,7 @@ local findLDivergencePoint = require("divergence")
 local Segment = {}
 Segment.__index = Segment
 
----@param from {x: number, y: number}
+---@param from Position
 ---@param surface LuaSurface
 ---@param self_id number
 ---@return Segment
@@ -85,7 +86,7 @@ function Segment:update_midpoint()
       { x = self.to.x, y = self.from.y }
 end
 
----@param pos {x: number, y: number}
+---@param pos Position
 function Segment:update_to(pos)
   -- Early return if position hasn't changed
   if self.to.x == pos.x and self.to.y == pos.y then
@@ -226,7 +227,7 @@ function Segment:flip_orientation()
 end
 
 --- @param skip number Number of nodes to skip from the start
---- @return {point: {x: number, y: number}, index: number}|nil
+--- @return {point: Position, index: number}|nil
 function Segment:update_nodes(skip)
   -- Generate new path from divergence point
   local new_nodes = self:get_nodes(skip)
@@ -353,3 +354,5 @@ function Segment:plan_belts(skip)
 end
 
 return Segment
+---@export Node
+---@export Position

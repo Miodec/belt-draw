@@ -74,9 +74,9 @@ local function cleanup(player, setTool)
   end
 end
 
---@param player LuaPlayer
---@param mode "normal"|"alt"
---@param pos {x: number, y: number, direction: defines.direction}
+---@param player LuaPlayer
+---@param mode "normal"|"alt"|"reverse"
+---@param node Node
 local function place(player, mode, node)
   if storage.player_reach then
     player.character_build_distance_bonus = storage.player_reach
@@ -103,8 +103,8 @@ local function place(player, mode, node)
 
   local count = inventory.get_item_count(name)
 
-  local dx = player.position.x - node.pos.x
-  local dy = player.position.y - node.pos.y
+  local dx = player.position.x - node.x
+  local dy = player.position.y - node.y
   local distance_squared = dx * dx + dy * dy
   local reach_squared = player.build_distance * player.build_distance
 
@@ -112,8 +112,8 @@ local function place(player, mode, node)
 
   local entity = {
     name = name,
-    position = { x = node.pos.x, y = node.pos.y },
-    direction = node.pos.direction,
+    position = { x = node.x, y = node.y },
+    direction = node.direction,
     force = player.force,
     player = player,
     fast_replace = true
@@ -132,9 +132,9 @@ local function place(player, mode, node)
   end
 end
 
---@param player LuaPlayer
---@param event EventData
---@param mode "normal"|"alt"
+---@param player LuaPlayer
+---@param event EventData.on_player_selected_area|EventData.on_player_alt_selected_area|EventData.on_player_reverse_selected_area
+---@param mode "normal"|"alt"|"reverse"
 local function on_release(player, event, mode)
   if mode == "reverse" then
     -- mark entities for deconstruction
@@ -165,6 +165,8 @@ local function on_release(player, event, mode)
   cleanup(player)
 end
 
+---@param pos Position
+---@param surface LuaSurface
 function add_segment(pos, surface)
   local segment = Segment.new(pos, storage.starting_direction, surface, #storage.segments + 1)
   table.insert(storage.segments, segment)
@@ -175,7 +177,6 @@ function add_segment(pos, surface)
   end
 end
 
--- Handle selection area (drag and release)
 script.on_event(defines.events.on_player_selected_area, function(event)
   if not is_bp_tool(event.item) then return end
 
