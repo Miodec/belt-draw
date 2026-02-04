@@ -92,9 +92,12 @@ function Segment:update_to(pos, update_orientation)
 
   -- print("Total length: " .. (side_lengths.x + side_lengths.y))
 
+  local divergence = findLDivergencePoint(self.from, self.prev_to, self.to,
+    prev_orientation or self.orientation or "horizontal")
+  local divergenceIndex = divergence and divergence.index or 0
   self:update_midpoint()
-  local divergence = self:update_nodes(prev_orientation)
-  self:visualize(divergence and divergence.index or 0)
+  self:update_nodes(divergenceIndex)
+  self:visualize(divergenceIndex)
 end
 
 function Segment:clear_visualization()
@@ -204,15 +207,13 @@ function Segment:flip_orientation()
   end
   self.prev_to = nil -- Reset cache to force full update
   self:update_midpoint()
-  self:update_nodes()
+  self:update_nodes(0)
   self:visualize()
 end
 
+--- @param skip number Number of nodes to skip from the start
 --- @return {point: {x: number, y: number}, index: number}|nil
-function Segment:update_nodes(prev_orientation)
-  local divergence = findLDivergencePoint(self.from, self.prev_to, self.to, prev_orientation or self.orientation)
-  local skip = divergence and divergence.index or 0
-
+function Segment:update_nodes(skip)
   -- Generate new path from divergence point
   local new_nodes = self:get_nodes(skip)
 
@@ -243,8 +244,6 @@ function Segment:update_nodes(prev_orientation)
     end
     self.nodes[i] = nil
   end
-
-  return divergence
 end
 
 ---@param skip number? Number of nodes to skip from the start (default 0)
