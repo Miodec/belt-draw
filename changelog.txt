@@ -1,0 +1,8 @@
+---------------------------------------------------------------------------------------------------
+Version: 1.1.1
+  Bugfixes:
+    - Prevent double undergrounds
+---------------------------------------------------------------------------------------------------
+Version: 1.1.0
+  Info:
+    - Reworked underground belt logic, should be much more robust now.
