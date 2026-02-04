@@ -32,7 +32,7 @@ end)
 ---@param tool_name string
 ---@return boolean
 local function is_bp_tool(tool_name)
-  return tool_name == "belt-planner" or tool_name == "belt-planner-preview"
+  return tool_name == "belt-draw" or tool_name == "belt-draw-preview"
 end
 
 ---@param player LuaPlayer
@@ -50,9 +50,9 @@ end
 ---@return boolean
 local function is_bp_entity(entity)
   if entity.type == "entity-ghost" then
-    return entity.ghost_name == "belt-planner-dummy-transport-belt" or entity.ghost_name == "belt-planner-dummy-entity"
+    return entity.ghost_name == "belt-draw-dummy-transport-belt" or entity.ghost_name == "belt-draw-dummy-entity"
   end
-  return entity.name == "belt-planner-dummy-transport-belt" or entity.name == "belt-planner-dummy-entity"
+  return entity.name == "belt-draw-dummy-transport-belt" or entity.name == "belt-draw-dummy-entity"
 end
 
 ---@param player LuaPlayer
@@ -61,9 +61,9 @@ local function set_tool(player)
   if cursor_stack then
     if not cursor_stack.valid_for_read or is_bp_tool(cursor_stack.name) or player.clear_cursor() then
       if storage.dragging == true then
-        cursor_stack.set_stack({ name = "belt-planner", count = 1 })
+        cursor_stack.set_stack({ name = "belt-draw", count = 1 })
       else
-        cursor_stack.set_stack({ name = "belt-planner-preview", count = 1 })
+        cursor_stack.set_stack({ name = "belt-draw-preview", count = 1 })
       end
     end
   end
@@ -245,7 +245,7 @@ script.on_event(defines.events.on_player_cursor_stack_changed, function(event)
   end
 end)
 
-script.on_event("belt-planner-flip-orientation", function(event)
+script.on_event("belt-draw-flip-orientation", function(event)
   local player = game.get_player(event.player_index) --- @diagnostic disable-line
   if not player then return end
 
@@ -254,12 +254,12 @@ script.on_event("belt-planner-flip-orientation", function(event)
 
   storage.current_segment:flip_orientation()
   player.create_local_flying_text({
-    text = { "belt-planner.flipped" },
+    text = { "belt-draw.flipped" },
     create_at_cursor = true
   })
 end)
 
-script.on_event("belt-planner-anchor", function(event)
+script.on_event("belt-draw-anchor", function(event)
   local player = game.get_player(event.player_index) --- @diagnostic disable-line
   if not player then return end
 
@@ -269,7 +269,7 @@ script.on_event("belt-planner-anchor", function(event)
   add_segment(storage.current_segment.to, player)
 
   player.create_local_flying_text({
-    text = { "belt-planner.anchored" },
+    text = { "belt-draw.anchored" },
     create_at_cursor = true
   })
 end)

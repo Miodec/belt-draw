@@ -184,7 +184,7 @@ local scale = 0.5
 ---@param node Node
 function Segment:render_anchor(node)
   local sprite = {
-    sprite = "belt-planner-anchor",
+    sprite = "belt-draw-anchor",
     x_scale = scale,
     y_scale = scale,
     target = { x = node.x, y = node.y },
@@ -197,13 +197,13 @@ end
 function Segment:render_node(node)
   local sprite_name = nil
   if node.belt_type == "above" then
-    sprite_name = "belt-planner-above"
+    sprite_name = "belt-draw-above"
   elseif node.belt_type == "under" then
-    sprite_name = "belt-planner-under"
+    sprite_name = "belt-draw-under"
   elseif node.belt_type == "down" or node.belt_type == "up" then
-    sprite_name = "belt-planner-entryexit"
+    sprite_name = "belt-draw-entryexit"
   elseif node.belt_type == "blocked" then
-    sprite_name = "belt-planner-nil"
+    sprite_name = "belt-draw-nil"
   end
 
   if not sprite_name then
@@ -235,13 +235,13 @@ function Segment:update_render(node)
 
   node.render.orientation = node.direction * 0.0625 - 0.25
   if node.belt_type == "above" then
-    node.render.sprite = "belt-planner-above"
+    node.render.sprite = "belt-draw-above"
   elseif node.belt_type == "under" then
-    node.render.sprite = "belt-planner-under"
+    node.render.sprite = "belt-draw-under"
   elseif node.belt_type == "down" or node.belt_type == "up" then
-    node.render.sprite = "belt-planner-entryexit"
+    node.render.sprite = "belt-draw-entryexit"
   elseif node.belt_type == "blocked" or node.belt_type == nil then
-    node.render.sprite = "belt-planner-nil"
+    node.render.sprite = "belt-draw-nil"
   end
 end
 
@@ -528,7 +528,7 @@ function Segment:plan_belts(skip)
         node.belt_type = "above"
         goto continue
       end
-      
+
       node.belt_type = "blocked"
 
       -- Invalidate any underground that starts after this blocked node
@@ -624,8 +624,8 @@ function Segment:find_underground_entry(exit_idx)
     end
 
     -- Verify blocked node is actually blocked
-    local is_blocked = blocked.belt_type == "blocked" or 
-                       (blocked.belt_type == nil and self:find_entity_at_node(blocked))
+    local is_blocked = blocked.belt_type == "blocked" or
+        (blocked.belt_type == nil and self:find_entity_at_node(blocked))
 
     -- Entry must be available for use
     local entry_available = entry.belt_type == "above" or entry.belt_type == nil
@@ -643,7 +643,7 @@ function Segment:find_underground_entry(exit_idx)
       if before_entry and before_entry.belt_type == "above" and before_entry.direction ~= entry.direction then
         break
       end
-      
+
       -- Valid entry found, continue searching for longer underground
       best_entry_idx = entry_idx
       best_length = length + 1

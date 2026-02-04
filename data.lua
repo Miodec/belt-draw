@@ -1,11 +1,11 @@
 data:extend({
   {
     type = "collision-layer",
-    name = "belt-planner-layer",
+    name = "belt-draw-layer",
   },
   {
     type = "trivial-smoke",
-    name = "belt-planner-empty-smoke",
+    name = "belt-draw-empty-smoke",
     animation = {
       filename = "__core__/graphics/empty.png",
       size = { 1, 1 },
@@ -15,12 +15,12 @@ data:extend({
   },
   {
     type = "selection-tool",
-    name = "belt-planner-preview",
+    name = "belt-draw-preview",
     icon = "__base__/graphics/icons/transport-belt.png",
     icon_size = 64,
     stack_size = 1,
     subgroup = "tool",
-    order = "c[automated-construction]-d[belt-planner]",
+    order = "c[automated-construction]-d[belt-draw]",
     select = {
       mode = "nothing",
       border_color = { a = 0 },
@@ -49,21 +49,21 @@ data:extend({
     flags = { "only-in-cursor", "spawnable" },
     hidden = true,
     draw_label_for_cursor_render = true,
-    place_result = "belt-planner-dummy-transport-belt",
+    place_result = "belt-draw-dummy-transport-belt",
     collision_mask = {
       layers = {
-        ["belt-planner-layer"] = true
+        ["belt-draw-layer"] = true
       }
     }
   },
   {
     type = "selection-tool",
-    name = "belt-planner",
+    name = "belt-draw",
     icon = "__base__/graphics/icons/transport-belt.png",
     icon_size = 64,
     stack_size = 1,
     subgroup = "tool",
-    order = "c[automated-construction]-d[belt-planner]",
+    order = "c[automated-construction]-d[belt-draw]",
     select = {
       mode = "nothing",
       border_color = { a = 0 },
@@ -92,27 +92,27 @@ data:extend({
     flags = { "only-in-cursor", "spawnable" },
     hidden = true,
     draw_label_for_cursor_render = true,
-    place_result = "belt-planner-dummy-entity",
+    place_result = "belt-draw-dummy-entity",
     collision_mask = {
       layers = {
-        ["belt-planner-layer"] = true
+        ["belt-draw-layer"] = true
       }
     }
   },
   {
     type = "shortcut",
-    name = "belt-planner-shortcut",
+    name = "belt-draw-shortcut",
     action = "spawn-item",
-    item_to_spawn = "belt-planner-preview",
+    item_to_spawn = "belt-draw-preview",
     icon = "__base__/graphics/icons/transport-belt.png",
     icon_size = 64,
     small_icon = "__base__/graphics/icons/transport-belt.png",
     small_icon_size = 64,
-    associated_control_input = "belt-planner-shortcut"
+    associated_control_input = "belt-draw-shortcut"
   },
   {
     type = "simple-entity-with-force",
-    name = "belt-planner-dummy-entity",
+    name = "belt-draw-dummy-entity",
     flags = { "not-on-map", "player-creation" },
     hidden = false,
     collision_box = { { -0.4, -0.4 }, { 0.4, 0.4 } },
@@ -122,23 +122,23 @@ data:extend({
       filename = "__core__/graphics/empty.png",
       size = 1
     },
-    created_smoke = { smoke_name = "belt-planner-empty-smoke" } --- @diagnostic disable-line
+    created_smoke = { smoke_name = "belt-draw-empty-smoke" } --- @diagnostic disable-line
   },
   {
     type = "custom-input",
-    name = "belt-planner-flip-orientation",
+    name = "belt-draw-flip-orientation",
     key_sequence = "F",
-    order = "a[mod]-b[belt-planner-flip]",
+    order = "a[mod]-b[belt-draw-flip]",
   },
   {
     type = "custom-input",
-    name = "belt-planner-anchor",
+    name = "belt-draw-anchor",
     key_sequence = "R",
-    order = "a[mod]-b[belt-planner-anchor]",
+    order = "a[mod]-b[belt-draw-anchor]",
   },
   {
     type = "transport-belt",
-    name = "belt-planner-dummy-transport-belt",
+    name = "belt-draw-dummy-transport-belt",
     icon = "__base__/graphics/icons/transport-belt.png",
     icon_size = 64,
     flags = { "placeable-neutral", "player-creation" },
@@ -147,40 +147,40 @@ data:extend({
     collision_box = { { -0.4, -0.4 }, { 0.4, 0.4 } },
     belt_animation_set = data.raw["transport-belt"]["transport-belt"].belt_animation_set,
     fast_replaceable_group = "transport-belt",
-    created_smoke = { smoke_name = "belt-planner-empty-smoke" } --- @diagnostic disable-line
+    created_smoke = { smoke_name = "belt-draw-empty-smoke" } --- @diagnostic disable-line
   },
   {
     type = "sprite",
-    name = "belt-planner-above",
-    filename = "__belt-planner__/graphics/above.png",
+    name = "belt-draw-above",
+    filename = "__belt-draw__/graphics/above.png",
     size = 64,
     priority = "extra-high-no-scale"
   },
   {
     type = "sprite",
-    name = "belt-planner-under",
-    filename = "__belt-planner__/graphics/under.png",
+    name = "belt-draw-under",
+    filename = "__belt-draw__/graphics/under.png",
     size = 64,
     priority = "extra-high-no-scale"
   },
   {
     type = "sprite",
-    name = "belt-planner-anchor",
-    filename = "__belt-planner__/graphics/anchor2.png",
+    name = "belt-draw-anchor",
+    filename = "__belt-draw__/graphics/anchor2.png",
     size = 64,
     priority = "extra-high-no-scale"
   },
   {
     type = "sprite",
-    name = "belt-planner-entryexit",
-    filename = "__belt-planner__/graphics/entryexit.png",
+    name = "belt-draw-entryexit",
+    filename = "__belt-draw__/graphics/entryexit.png",
     size = 64,
     priority = "extra-high-no-scale"
   },
   {
     type = "sprite",
-    name = "belt-planner-nil",
-    filename = "__belt-planner__/graphics/nil.png",
+    name = "belt-draw-nil",
+    filename = "__belt-draw__/graphics/nil.png",
     size = 64,
     priority = "extra-high-no-scale"
   }

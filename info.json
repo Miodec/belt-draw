@@ -1,8 +1,8 @@
 {
-  "name": "belt-planner",
+  "name": "belt-draw",
   "version": "1.0.0",
-  "title": "Belt Planner",
+  "title": "Belt Draw",
   "author": "Miodec",
   "factorio_version": "2.0",
-  "description": "Drag-to-place L-shaped belt tool with a preview. Right-click to remove."
+  "description": "Draw-to-place L-shaped belts with automatic undergrounds. R to place an anchor, F to flip, Right-click to remove."
 }
