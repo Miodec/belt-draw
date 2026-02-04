@@ -187,7 +187,7 @@ data:extend({
   {
     type = "sprite",
     name = "belt-draw-empty",
-    filename = "__core__/graphics/factorio.png",
+    filename = "__core__/graphics/icons/alerts/destroyed-icon.png",
     size = 64,
     priority = "extra-high-no-scale"
   }
