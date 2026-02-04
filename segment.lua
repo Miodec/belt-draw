@@ -12,7 +12,7 @@ local findLDivergencePoint = require("divergence")
 ---@field self_id number|nil
 ---@field nodes Node[]
 ---@field surface LuaSurface
----@field no_orientation_override boolean
+---@field orientation_override "horizontal"|"vertical"|nil
 local Segment = {}
 Segment.__index = Segment
 
@@ -38,9 +38,28 @@ function Segment.new(from, first_node_direction, surface, self_id)
     }
   }
   self.surface = surface
-  self.no_orientation_override = false
+  self.orientation_override = nil
+  self:check_orientation_override()
   self:visualize()
   return self
+end
+
+function Segment:check_orientation_override()
+  local entity = self.surface.find_entities_filtered({
+    position = self.from,
+    radius = 0.9
+  })[1]
+  local type = entity and (entity.type == "entity-ghost" and entity.ghost_type or entity.type)
+
+
+  if type == "splitter" then
+    local direction = entity.direction
+    if direction == defines.direction.north or direction == defines.direction.south then
+      self.orientation_override = "vertical"
+    else
+      self.orientation_override = "horizontal"
+    end
+  end
 end
 
 function Segment:destroy()
@@ -72,21 +91,8 @@ function Segment:update_to(pos)
   self.prev_to = prev_to
   self.to = pos
 
-  local entity = self.surface.find_entities_filtered({
-    position = self.from,
-    radius = 0.9
-  })[1]
-  local type = entity and entity.type == "entity-ghost" and entity.ghost_type or entity.type
-  local is_starting_on_splitter = type == "splitter"
-
-
-  if is_starting_on_splitter and not self.no_orientation_override then
-    local direction = entity.direction
-    if direction == defines.direction.north or direction == defines.direction.south then
-      self.orientation = "vertical"
-    else
-      self.orientation = "horizontal"
-    end
+  if self.orientation_override ~= nil then
+    self.orientation = self.orientation_override
   else
     local side_lengths = self:get_side_lengths()
 
@@ -212,7 +218,7 @@ function Segment:flip_orientation()
   elseif self.orientation == "vertical" then
     self.orientation = "horizontal"
   end
-  self.no_orientation_override = true
+  self.orientation_override = nil
   self.prev_to = nil -- Reset cache to force full update
   self:update_midpoint()
   self:update_nodes(0)
