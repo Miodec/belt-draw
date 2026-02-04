@@ -1,0 +1,9 @@
+{
+  "diagnostics": {
+    "neededFileStatus": {
+      "no-unknown": "Any!",
+      "missing-parameter": "Any!",
+      "missing-return": "Any!"
+    }
+  }
+}

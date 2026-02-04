@@ -74,6 +74,7 @@ function Segment:destroy()
   self:clear_visualization()
 end
 
+---@param max_segment_id number
 function Segment:update_max_segment_id(max_segment_id)
   self.max_segment_id = max_segment_id
   if self.self_id == max_segment_id - 1 then
@@ -135,6 +136,7 @@ function Segment:clear_visualization()
   end
 end
 
+---@param node Node
 function Segment:draw_arrow(node)
   local sprite = {
     sprite = "belt-planner-arrow",
@@ -142,11 +144,13 @@ function Segment:draw_arrow(node)
     y_scale = 0.25,
     target = { x = node.x, y = node.y },
     surface = self.surface,
+    ---@type number
     orientation = node.direction * 0.0625 - 0.25,
   }
   node.render = rendering.draw_sprite(sprite)
 end
 
+---@param node Node
 function Segment:draw_anchor(node)
   local sprite = {
     sprite = "belt-planner-anchor",
@@ -158,6 +162,7 @@ function Segment:draw_anchor(node)
   node.render = rendering.draw_sprite(sprite)
 end
 
+---@param divergence_index number?
 function Segment:visualize(divergence_index)
   divergence_index = divergence_index or 0
   local more_exist = self.self_id < self.max_segment_id
@@ -265,7 +270,8 @@ end
 ---@return Node[]
 function Segment:get_nodes(skip)
   skip = skip or 0
-  local belt_positions = {}
+  ---@type Node[]
+  local nodes = {}
   local from = self.from
   local to = self.to
 
@@ -284,7 +290,7 @@ function Segment:get_nodes(skip)
       if idx >= skip then
         local is_last = (y == to.y) and has_horizontal
         count = count + 1
-        belt_positions[count] = { x = from.x, y = y, direction = is_last and x_dir or y_dir, render = nil }
+        nodes[count] = { x = from.x, y = y, direction = is_last and x_dir or y_dir, render = nil }
       end
       idx = idx + 1
       if y == to.y then break end
@@ -297,7 +303,7 @@ function Segment:get_nodes(skip)
       while true do
         if idx >= skip then
           count = count + 1
-          belt_positions[count] = { x = x, y = to.y, direction = x_dir, render = nil }
+          nodes[count] = { x = x, y = to.y, direction = x_dir, render = nil }
         end
         idx = idx + 1
         if x == to.x then break end
@@ -319,7 +325,7 @@ function Segment:get_nodes(skip)
       if idx >= skip then
         local is_last = (x == to.x) and has_vertical
         count = count + 1
-        belt_positions[count] = { x = x, y = from.y, direction = is_last and y_dir or x_dir, render = nil }
+        nodes[count] = { x = x, y = from.y, direction = is_last and y_dir or x_dir, render = nil }
       end
       idx = idx + 1
       if x == to.x then break end
@@ -332,7 +338,7 @@ function Segment:get_nodes(skip)
       while true do
         if idx >= skip then
           count = count + 1
-          belt_positions[count] = { x = to.x, y = y, direction = y_dir, render = nil }
+          nodes[count] = { x = to.x, y = y, direction = y_dir, render = nil }
         end
         idx = idx + 1
         if y == to.y then break end
@@ -340,9 +346,10 @@ function Segment:get_nodes(skip)
       end
     end
   end
-  return belt_positions
+  return nodes
 end
 
+---@param skip number
 function Segment:plan_belts(skip)
   -- Placeholder for belt planning logic
   -- This function would determine the type of belt (above, down, up, under) for each node

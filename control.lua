@@ -29,10 +29,14 @@ script.on_configuration_changed(function()
   storage.current_segment = storage.current_segment or nil
 end)
 
+---@param tool_name string
+---@return boolean
 local function is_bp_tool(tool_name)
   return tool_name == "belt-planner" or tool_name == "belt-planner-preview"
 end
 
+---@param player LuaPlayer
+---@return boolean
 local function is_holding_bp_tool(player)
   local cursor_stack = player.cursor_stack
   if cursor_stack == nil then return false end
@@ -42,6 +46,8 @@ local function is_holding_bp_tool(player)
 end
 
 
+---@param entity LuaEntity
+---@return boolean
 local function is_bp_entity(entity)
   if entity.type == "entity-ghost" then
     return entity.ghost_name == "belt-planner-dummy-transport-belt" or entity.ghost_name == "belt-planner-dummy-entity"
@@ -49,6 +55,7 @@ local function is_bp_entity(entity)
   return entity.name == "belt-planner-dummy-transport-belt" or entity.name == "belt-planner-dummy-entity"
 end
 
+---@param player LuaPlayer
 local function set_tool(player)
   local cursor_stack = player.cursor_stack
   if cursor_stack then
@@ -62,6 +69,8 @@ local function set_tool(player)
   end
 end
 
+---@param player LuaPlayer
+---@param setTool boolean?
 local function cleanup(player, setTool)
   for _, segment in pairs(storage.segments) do
     segment:destroy()
@@ -77,6 +86,7 @@ end
 ---@param player LuaPlayer
 ---@param mode "normal"|"alt"|"reverse"
 ---@param node Node
+---@return nil
 local function place(player, mode, node)
   if storage.player_reach then
     player.character_build_distance_bonus = storage.player_reach
