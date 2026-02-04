@@ -245,7 +245,7 @@ function Segment:update_nodes(prev_orientation)
 end
 
 ---@param skip number? Number of nodes to skip from the start (default 0)
----@return {x: number, y: number, direction: defines.direction}[]
+---@return {x: number, y: number, direction: defines.direction, render: nil}[]
 function Segment:get_nodes(skip)
   skip = skip or 0
   local belt_positions = {}
@@ -267,7 +267,7 @@ function Segment:get_nodes(skip)
       if idx >= skip then
         local is_last = (y == to.y) and has_horizontal
         count = count + 1
-        belt_positions[count] = { x = from.x, y = y, direction = is_last and x_dir or y_dir }
+        belt_positions[count] = { x = from.x, y = y, direction = is_last and x_dir or y_dir, render = nil }
       end
       idx = idx + 1
       if y == to.y then break end
@@ -280,7 +280,7 @@ function Segment:get_nodes(skip)
       while true do
         if idx >= skip then
           count = count + 1
-          belt_positions[count] = { x = x, y = to.y, direction = x_dir }
+          belt_positions[count] = { x = x, y = to.y, direction = x_dir, render = nil }
         end
         idx = idx + 1
         if x == to.x then break end
@@ -302,7 +302,7 @@ function Segment:get_nodes(skip)
       if idx >= skip then
         local is_last = (x == to.x) and has_vertical
         count = count + 1
-        belt_positions[count] = { x = x, y = from.y, direction = is_last and y_dir or x_dir }
+        belt_positions[count] = { x = x, y = from.y, direction = is_last and y_dir or x_dir, render = nil }
       end
       idx = idx + 1
       if x == to.x then break end
@@ -315,7 +315,7 @@ function Segment:get_nodes(skip)
       while true do
         if idx >= skip then
           count = count + 1
-          belt_positions[count] = { x = to.x, y = y, direction = y_dir }
+          belt_positions[count] = { x = to.x, y = y, direction = y_dir, render = nil }
         end
         idx = idx + 1
         if y == to.y then break end
