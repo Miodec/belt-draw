@@ -116,15 +116,6 @@ function Segment:update_to(pos)
     end
   end
 
-
-
-
-  -- print("Updated segment to (" .. pos.x .. ", " .. pos.y .. ") with orientation: " .. tostring(self.orientation))
-
-  -- print("Side lengths: x=" .. side_lengths.x .. " y=" .. side_lengths.y)
-
-  -- print("Total length: " .. (side_lengths.x + side_lengths.y))
-
   local divergence = findLDivergencePoint(self.from, self.prev_to, self.to,
     prev_orientation or self.orientation or "horizontal")
   local divergenceIndex = divergence and divergence.index or 0
