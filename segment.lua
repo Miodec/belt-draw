@@ -69,10 +69,19 @@ function Segment:get_compatibility(entity, node)
     return "block"
   end
 
-  if (type == "splitter" or type == "underground-belt") then
+  if (type == "splitter") then
     if (entity.direction == node.direction) then
       -- if (entity.direction == node.direction or entity.direction == (node.direction + 8) % 16) then
       return "connect"
+    else
+      return "block"
+    end
+  end
+
+  if (type == "underground-belt") then
+    if (entity.direction == node.direction or entity.direction == (node.direction + 8) % 16) then
+      -- if (entity.direction == node.direction or entity.direction == (node.direction + 8) % 16) then
+      return "replace"
     else
       return "block"
     end
