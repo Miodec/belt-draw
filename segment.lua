@@ -519,7 +519,7 @@ function Segment:invalidate_underground(start_node)
 end
 
 function Segment:plan_belts(skip)
-  skip = skip or 0
+  skip = 0
 
   -- When replanning from start (skip=0), clear all belt_types to allow fresh planning
   if skip == 0 then
@@ -528,192 +528,110 @@ function Segment:plan_belts(skip)
     end
   end
 
-  -- Handle trailing underground at end
-  local last_node = self.nodes[#self.nodes]
-  if last_node and last_node.belt_type == "under" then
-    self:invalidate_underground(last_node)
+
+  -- Invalidate incomplete underground at end
+  if self.nodes[#self.nodes].belt_type == "under" then
+    self:invalidate_underground(self.nodes[#self.nodes])
   end
 
   -- Process backwards from end to skip
   for i = #self.nodes, skip + 1, -1 do
     local node = self.nodes[i]
-    local belt_type = node.belt_type
-
-    -- Skip already assigned underground nodes
-    if is_underground_type(node) then
-      goto continue
-    end
 
     -- Check for blocking entities
     local entity = self:find_entity_at_node(node)
     if entity then
       -- If it's a belt going in same direction, connect to it instead of blocking
-      local compat = self:is_compatible_belt(entity, node.direction)
-      if compat == "full" then
+      local compat = self:get_compatibility(entity, node)
+      if compat == "replace" then
         node.belt_type = "above"
-        goto continue
-      end
-      if compat == "partial" then
-        node.belt_type = "under"
-        goto continue
-      end
-
-      node.belt_type = "blocked"
-
-      -- Invalidate any underground that starts after this blocked node
-      local next_node = self.nodes[i + 1]
-      if next_node and is_underground_type(next_node) then
-        self:invalidate_underground(next_node)
-      end
-
-      goto continue
-    end
-
-    local prev = self.nodes[i - 1]
-    if not prev then
-      node.belt_type = "above"
-      goto continue
-    end
-
-    -- Invalidate previous underground on direction change
-    if prev.belt_type == "up" then
-      local prev_prev = self.nodes[i - 2]
-      if prev_prev and
-          node.direction == prev.direction and
-          prev.direction ~= prev_prev.direction then
-        self:invalidate_underground(prev)
-      end
-    end
-
-    -- Try to create underground belt if previous node is blocked
-    local prev_is_blocked = prev.belt_type == "blocked"
-    if not prev_is_blocked and prev.belt_type == nil then
-      local prev_entity = self:find_entity_at_node(prev)
-      if prev_entity then
-        -- Don't consider it blocked if it's a compatible belt
-        prev_is_blocked = not self:is_compatible_belt(prev_entity, prev.direction) == "full"
-      end
-    end
-
-    if prev_is_blocked then
-      -- Check if this is a gap between entities (entity before and after)
-      local next_pos = self:get_next_position(node)
-      local next_entity = self.player.surface.find_entities_filtered({
-        area = { { next_pos.x - 0.5, next_pos.y - 0.5 }, { next_pos.x + 0.5, next_pos.y + 0.5 } }
-      })[1]
-      local is_gap = next_entity and next_entity.type ~= "character"
-
-      if is_gap then
+      elseif compat == "connect" then
+        node.belt_type = "above_connect"
+      else
         node.belt_type = "blocked"
-        goto continue
       end
+    else
+      node.belt_type = "above"
+    end
+  end
 
-      local entry_idx, length = self:find_underground_entry(i)
-      if entry_idx then
-        self:create_underground(entry_idx, length)
-        i = entry_idx + 1 -- Skip to avoid reprocessing
-        goto continue
+  for i = 1, #self.nodes do
+    local node = self.nodes[i]
+
+    if node.belt_type == "blocked" then
+      -- Try to find underground entry for blocked node
+      local entry_idx, exit_idx = self:find_underground(i)
+
+      -- If we found both entry and exit, create underground
+      if entry_idx and exit_idx then
+        if (exit_idx - entry_idx - 1) > 4 then
+          -- Limit underground length to 4 belts
+          goto continue
+        end
+
+        local entry_node = self.nodes[entry_idx]
+        local exit_node = self.nodes[exit_idx]
+
+
+        self.nodes[entry_idx].belt_type = "down"
+        self:update_render(self.nodes[entry_idx])
+
+        for j = entry_idx + 1, exit_idx - 1 do
+          local under_node = self.nodes[j]
+          if under_node.belt_type == "blocked" then
+            under_node.belt_type = "under_entity"
+          else
+            under_node.belt_type = "under"
+          end
+          self:update_render(under_node)
+        end
+
+        self.nodes[exit_idx].belt_type = "up"
+        self:update_render(self.nodes[exit_idx])
+
+
+        if entry_node.direction ~= exit_node.direction then
+          self:invalidate_underground(self.nodes[entry_idx])
+          goto continue
+        end
       end
     end
-
-    -- Default to above-ground belt
-    node.belt_type = "above"
-
+    -- in a loop, check previous nodes. if its blocked, continue, if its above, set it to down
     ::continue::
   end
 end
 
----@param exit_idx number Exit node index
----@return number?, number Entry index and underground length, or nil
-function Segment:find_underground_entry(exit_idx)
-  local exit_dir = self.nodes[exit_idx].direction
-  local length = 0
+function Segment:find_underground(node_index)
+  local i = node_index
+  local entry_idx = nil
+  local exit_idx = nil
 
-  local best_entry_idx = nil
-  local best_length = 0
-
-  while length < 4 do
-    local blocked_idx = exit_idx - length - 1
-    local entry_idx = exit_idx - length - 2
-
-    local blocked = self.nodes[blocked_idx]
-    local entry = self.nodes[entry_idx]
-
-    if not entry then
+  -- Find exit (up) - search forward from blocked node
+  for j = i + 1, #self.nodes do
+    local exit_node = self.nodes[j]
+    if exit_node.belt_type == "up" then
+      exit_idx = j
       break
     end
-
-    if not blocked then
+    if exit_node.belt_type == "above" then
+      exit_idx = j
       break
     end
-
-    -- Direction must match throughout underground
-    if blocked.direction ~= exit_dir then
-      break
-    end
-
-    -- Verify blocked node is actually blocked
-    local is_blocked = blocked.belt_type == "blocked" or
-        (blocked.belt_type == nil and self:find_entity_at_node(blocked))
-
-    -- Entry must be available for use
-    local entry_available = entry.belt_type == "above" or entry.belt_type == nil
-
-    -- Check if we can use this as an entry/exit pair
-    if entry_available and is_blocked and entry.direction == exit_dir then
-      -- Skip if entry has entity blocking it
-      if self:find_entity_at_node(entry) then
-        length = length + 1
-        goto continue_search
-      end
-
-      -- Check for direction conflicts with previous node
-      local before_entry = self.nodes[entry_idx - 1]
-      if before_entry and before_entry.belt_type == "above" and before_entry.direction ~= entry.direction then
-        break
-      end
-
-      -- Valid entry found, continue searching for longer underground
-      best_entry_idx = entry_idx
-      best_length = length + 1
-      length = length + 1
-      goto continue_search
-    end
-
-    -- Stop if entry direction doesn't match
-    if entry_available and is_blocked and entry.direction ~= exit_dir then
-      break
-    end
-
-    -- Stop if blocked node is assigned to something else
-    if blocked.belt_type ~= "blocked" and blocked.belt_type ~= nil then
-      break
-    end
-
-    length = length + 1
-    ::continue_search::
   end
 
-  if best_entry_idx then
-    return best_entry_idx, best_length
+  -- Find entry (down) - search backward from blocked node
+  for k = i - 1, 1, -1 do
+    local entry_node = self.nodes[k]
+    if entry_node.belt_type == "down" then
+      entry_idx = k
+      break
+    end
+    if entry_node.belt_type == "above" then
+      entry_idx = k
+      break
+    end
   end
-
-  return nil, 0
-end
-
----@param entry_idx number Entry node index
----@param exit_idx number Exit node index
-function Segment:create_underground(entry_idx, exit_idx)
-  self.nodes[entry_idx].belt_type = "down"
-  self:update_render(self.nodes[entry_idx])
-
-  for j = entry_idx + 1, exit_idx - 1 do
-    self.nodes[j].belt_type = "under"
-    self:update_render(self.nodes[j])
-  end
-
-  self.nodes[exit_idx].belt_type = "up"
-  self:update_render(self.nodes[exit_idx])
+  return entry_idx, exit_idx
 end
 
 return Segment
