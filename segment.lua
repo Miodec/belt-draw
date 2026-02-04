@@ -480,7 +480,7 @@ function Segment:invalidate_underground(start_node)
 
   -- Search backwards for entry
   for i = start_idx - 1, 1, -1 do
-    if is_underground_type(self.nodes[i]) then
+    if self.nodes[i].belt_type == "down" or self.nodes[i].belt_type == "under" then
       min_idx = i
     else
       break
@@ -489,7 +489,7 @@ function Segment:invalidate_underground(start_node)
 
   -- Search forwards for exit
   for i = start_idx + 1, #self.nodes do
-    if is_underground_type(self.nodes[i]) then
+    if self.nodes[i].belt_type == "under" or self.nodes[i].belt_type == "up" then
       max_idx = i
     else
       break
