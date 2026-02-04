@@ -74,57 +74,6 @@ local function cleanup(player, setTool)
   end
 end
 
-local function place_ghost(player, item, pos)
-  player.surface.create_entity({
-    name = "entity-ghost",
-    ghost_name = item,
-    position = { x = pos.x, y = pos.y },
-    direction = pos.direction,
-    force = player.force,
-    player = player,
-    fast_replace = true
-  })
-end
-
-
-local function place_from_inventory(player, item, pos)
-  local inventory = player.get_inventory(defines.inventory.character_main)
-
-  if not inventory then
-    place_ghost(player, item, pos)
-    return
-  end
-
-  local count = inventory.get_item_count(item)
-
-  local dx = player.position.x - pos.x
-  local dy = player.position.y - pos.y
-  local distance_squared = dx * dx + dy * dy
-  local reach_squared = player.build_distance * player.build_distance
-
-  local can_reach = distance_squared < reach_squared
-
-  if count > 0 and can_reach then
-    player.surface.create_entity({
-      name = item,
-      position = { x = pos.x, y = pos.y },
-      direction = pos.direction,
-      force = player.force,
-      player = player,
-      fast_replace = true
-    })
-    inventory.remove({ name = item, count = 1 })
-  else
-    -- if not can_reach then
-    --   player.create_local_flying_text({
-    --     text = "Out of reach",
-    --     create_at_cursor = true
-    --   })
-    -- end
-    place_ghost(player, item, pos)
-  end
-end
-
 --@param player LuaPlayer
 --@param mode "normal"|"alt"
 --@param pos {x: number, y: number, direction: defines.direction}
@@ -134,37 +83,52 @@ local function place(player, mode, node)
     storage.player_reach = nil
   end
 
+  local inventory = player.get_inventory(defines.inventory.character_main)
 
-  local existing = player.surface.find_entities_filtered({
-    position = { x = node.x, y = node.y },
-    radius = 0.5,
-  })[1]
-
-  if existing ~= nil and is_bp_entity(existing) then
-    existing.destroy()
-    existing = nil
+  if not inventory then
+    return
   end
 
-  if existing ~= nil and (existing.type == "resource" or existing.type == "character") then
-    existing = nil
+  local name = nil
+
+  if node.belt_type == "above" then
+    name = "transport-belt"
+  elseif node.belt_type == "down" or node.belt_type == "up" then
+    name = "underground-belt"
   end
 
-  local item = "transport-belt"
+  if name == nil then
+    return
+  end
 
-  if existing ~= nil then
-    --something is there
-    if existing.type == "entity-ghost" then
-      if existing.ghost_name == "transport-belt" then
-        place_from_inventory(player, item, node)
-      end
-    else
-      if existing.name == "transport-belt" or mode == "alt" then
-        place_from_inventory(player, item, node)
-      end
-    end
+  local count = inventory.get_item_count(name)
+
+  local dx = player.position.x - node.pos.x
+  local dy = player.position.y - node.pos.y
+  local distance_squared = dx * dx + dy * dy
+  local reach_squared = player.build_distance * player.build_distance
+
+  local can_reach = distance_squared < reach_squared
+
+  local entity = {
+    name = name,
+    position = { x = node.pos.x, y = node.pos.y },
+    direction = node.pos.direction,
+    force = player.force,
+    player = player,
+    fast_replace = true
+  }
+  if node.belt_type == "down" then
+    entity.belt_to_ground_type = "input"
+  elseif node.belt_type == "up" then
+    entity.belt_to_ground_type = "output"
+  end
+
+  if count > 0 and can_reach then
+    player.surface.create_entity(entity)
+    inventory.remove({ name = name, count = 1 })
   else
-    --nothing is there
-    place_from_inventory(player, item, node)
+    player.surface.create_entity(entity)
   end
 end
 

@@ -1,6 +1,6 @@
 local findLDivergencePoint = require("divergence")
 
----@alias Node {x: number, y: number, direction: defines.direction, render: LuaRenderObject? , belt: "above"|"down"|"up"|"under"?}
+---@alias Node {x: number, y: number, direction: defines.direction, render: LuaRenderObject? , belt_type: "above"|"down"|"up"|"under"?}
 
 
 ---@class Segment
@@ -121,6 +121,7 @@ function Segment:update_to(pos)
   local divergenceIndex = divergence and divergence.index or 0
   self:update_midpoint()
   self:update_nodes(divergenceIndex)
+  self:plan_belts(divergenceIndex)
   self:visualize(divergenceIndex)
 end
 
@@ -220,6 +221,7 @@ function Segment:flip_orientation()
   self.prev_to = nil -- Reset cache to force full update
   self:update_midpoint()
   self:update_nodes(0)
+  self:plan_belts(0)
   self:visualize()
 end
 
@@ -338,6 +340,13 @@ function Segment:get_nodes(skip)
     end
   end
   return belt_positions
+end
+
+function Segment:plan_belts(skip)
+  -- Placeholder for belt planning logic
+  -- This function would determine the type of belt (above, down, up, under) for each node
+  -- based on the game rules and existing entities on the surface.
+  -- For now, we will leave it empty.
 end
 
 return Segment
