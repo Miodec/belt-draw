@@ -194,21 +194,11 @@ local function on_release(player, event, mode)
   end
 
   for _, segment in pairs(storage.segments) do
-    if segment:is_single_point() then
-      place(player, mode, {
-        x = segment.from.x,
-        y = segment.from.y,
-        direction = storage.starting_direction or defines.direction.north
-      })
-      cleanup(player)
-      return
+    for _, node in pairs(segment.nodes) do
+      place(player, mode, node)
     end
-
-    for _, pos in pairs(segment.nodes) do
-      place(player, mode, pos)
-    end
-    cleanup(player)
   end
+  cleanup(player)
 end
 
 function add_segment(pos, surface)
