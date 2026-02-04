@@ -2,7 +2,6 @@ local Segment = require("segment")
 
 ---@class StorageData
 ---@field rendering_target LuaEntity?
----@field auto_orientation boolean
 ---@field starting_direction defines.direction?
 ---@field dragging boolean
 ---@field player_reach number?
@@ -15,7 +14,6 @@ storage = storage
 
 -- Initialize global state
 script.on_init(function()
-  storage.auto_orientation = true
   storage.starting_direction = nil
   storage.dragging = false
   storage.player_reach = nil
@@ -24,9 +22,6 @@ script.on_init(function()
 end)
 
 script.on_configuration_changed(function()
-  if storage.auto_orientation == nil then
-    storage.auto_orientation = true
-  end
   storage.starting_direction = storage.starting_direction or nil
   storage.dragging = storage.dragging or false
   storage.player_reach = storage.player_reach or nil
@@ -73,7 +68,6 @@ local function cleanup(player, setTool)
   end
   storage.segments = {}
   storage.current_segment = nil
-  storage.auto_orientation = true
   storage.dragging = false
   if setTool == nil or setTool == true then
     set_tool(player)
@@ -327,7 +321,7 @@ script.on_event(defines.events.on_pre_build, function(event)
   if storage.current_segment == nil then
     add_segment(pos, player.surface)
   else
-    storage.current_segment:update_to(pos, storage.auto_orientation)
+    storage.current_segment:update_to(pos)
   end
 end)
 

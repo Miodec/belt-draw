@@ -12,6 +12,7 @@ local findLDivergencePoint = require("divergence")
 ---@field self_id number|nil
 ---@field nodes Node[]
 ---@field surface LuaSurface
+---@field no_orientation_override boolean
 local Segment = {}
 Segment.__index = Segment
 
@@ -37,6 +38,7 @@ function Segment.new(from, first_node_direction, surface, self_id)
     }
   }
   self.surface = surface
+  self.no_orientation_override = false
   self:visualize()
   return self
 end
@@ -58,7 +60,7 @@ function Segment:update_midpoint()
 end
 
 ---@param pos {x: number, y: number}
-function Segment:update_to(pos, update_orientation)
+function Segment:update_to(pos)
   -- Early return if position hasn't changed
   if self.to.x == pos.x and self.to.y == pos.y then
     return
@@ -70,21 +72,39 @@ function Segment:update_to(pos, update_orientation)
   self.prev_to = prev_to
   self.to = pos
 
-  local side_lengths = self:get_side_lengths()
+  local entity = self.surface.find_entities_filtered({
+    position = self.from,
+    radius = 0.9
+  })[1]
+  local type = entity and entity.type == "entity-ghost" and entity.ghost_type or entity.type
+  local is_starting_on_splitter = type == "splitter"
 
-  if self.orientation == nil then
-    if side_lengths.x ~= side_lengths.y then
-      self.orientation = side_lengths.y > side_lengths.x and "vertical" or "horizontal"
+
+  if is_starting_on_splitter and not self.no_orientation_override then
+    local direction = entity.direction
+    if direction == defines.direction.north or direction == defines.direction.south then
+      self.orientation = "vertical"
+    else
+      self.orientation = "horizontal"
     end
-  end
+  else
+    local side_lengths = self:get_side_lengths()
 
-  if update_orientation then
+    if self.orientation == nil then
+      if side_lengths.x ~= side_lengths.y then
+        self.orientation = side_lengths.y > side_lengths.x and "vertical" or "horizontal"
+      end
+    end
+
     if self.orientation == "vertical" and side_lengths.y == 0 then
       self.orientation = "horizontal"
     elseif self.orientation == "horizontal" and side_lengths.x == 0 then
       self.orientation = "vertical"
     end
   end
+
+
+
 
   -- print("Updated segment to (" .. pos.x .. ", " .. pos.y .. ") with orientation: " .. tostring(self.orientation))
 
@@ -192,6 +212,7 @@ function Segment:flip_orientation()
   elseif self.orientation == "vertical" then
     self.orientation = "horizontal"
   end
+  self.no_orientation_override = true
   self.prev_to = nil -- Reset cache to force full update
   self:update_midpoint()
   self:update_nodes(0)
