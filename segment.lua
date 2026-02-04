@@ -516,6 +516,16 @@ function Segment:plan_belts(skip)
         end
       end
 
+      -- Check if entry node needs invalidation due to direction mismatch with preceding above node
+      if entry_index then
+        local before_entry_node = self.nodes[entry_index - 1]
+        local entry_node = self.nodes[entry_index]
+        if before_entry_node and before_entry_node.belt_type == "above" and before_entry_node.direction ~= entry_node.direction then
+          self:invalidate_underground(entry_node)
+          entry_index = nil
+        end
+      end
+
       if entry_index then
         -- Set entry node to down
         self.nodes[entry_index].belt_type = "down"
