@@ -128,7 +128,7 @@ end
 --@param player LuaPlayer
 --@param mode "normal"|"alt"
 --@param pos {x: number, y: number, direction: defines.direction}
-local function place(player, mode, pos)
+local function place(player, mode, node)
   if storage.player_reach then
     player.character_build_distance_bonus = storage.player_reach
     storage.player_reach = nil
@@ -136,7 +136,7 @@ local function place(player, mode, pos)
 
 
   local existing = player.surface.find_entities_filtered({
-    position = { x = pos.x, y = pos.y },
+    position = { x = node.x, y = node.y },
     radius = 0.5,
   })[1]
 
@@ -155,16 +155,16 @@ local function place(player, mode, pos)
     --something is there
     if existing.type == "entity-ghost" then
       if existing.ghost_name == "transport-belt" then
-        place_from_inventory(player, item, pos)
+        place_from_inventory(player, item, node)
       end
     else
       if existing.name == "transport-belt" or mode == "alt" then
-        place_from_inventory(player, item, pos)
+        place_from_inventory(player, item, node)
       end
     end
   else
     --nothing is there
-    place_from_inventory(player, item, pos)
+    place_from_inventory(player, item, node)
   end
 end
 
