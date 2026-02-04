@@ -36,6 +36,16 @@ data:extend({
       border_color = { a = 0, r = 1 },
       cursor_box_type = "not-allowed",
     },
+    alt_reverse_select = {
+      mode = "nothing",
+      border_color = { a = 0 },
+      cursor_box_type = "not-allowed",
+    },
+    super_forced_select = {
+      mode = "nothing",
+      border_color = { a = 0 },
+      cursor_box_type = "not-allowed",
+    },
     flags = { "only-in-cursor", "spawnable" },
     hidden = true,
     draw_label_for_cursor_render = true,
@@ -67,6 +77,16 @@ data:extend({
     reverse_select = {
       mode = "deconstruct",
       border_color = { a = 0, r = 1 },
+      cursor_box_type = "not-allowed",
+    },
+    alt_reverse_select = {
+      mode = "nothing",
+      border_color = { a = 0 },
+      cursor_box_type = "not-allowed",
+    },
+    super_forced_select = {
+      mode = "nothing",
+      border_color = { a = 0 },
       cursor_box_type = "not-allowed",
     },
     flags = { "only-in-cursor", "spawnable" },
