@@ -219,7 +219,7 @@ end
 local function get_sprite_name_for_belt_type(belt_type)
   if belt_type == "above" then
     return "belt-draw-above"
-  elseif belt_type == "under" or belt_type == "under_entity" then
+  elseif belt_type == "under" or belt_type == "under_entity" or belt_type == "above_connect" then
     return "belt-draw-under"
   elseif belt_type == "down" or belt_type == "up" then
     return "belt-draw-entryexit"
