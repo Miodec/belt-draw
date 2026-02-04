@@ -318,6 +318,11 @@ script.on_event(defines.events.on_pre_build, function(event)
 
   local pos = { x = event.position.x, y = event.position.y }
 
+  if (pos.x % 1) ~= 0.5 or (pos.y % 1) ~= 0.5 then
+    -- print("on_pre_build event fired with non-aligned position, ignoring (" .. pos.x .. ", " .. pos.y .. ")")
+    return
+  end
+
   if storage.current_segment == nil then
     add_segment(pos, player.surface)
   else
