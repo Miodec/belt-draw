@@ -179,8 +179,15 @@ data:extend({
   },
   {
     type = "sprite",
-    name = "belt-draw-nil",
-    filename = "__belt-draw__/graphics/nil.png",
+    name = "belt-draw-blocked",
+    filename = "__belt-draw__/graphics/blocked.png",
+    size = 64,
+    priority = "extra-high-no-scale"
+  },
+  {
+    type = "sprite",
+    name = "belt-draw-empty",
+    filename = "__core__/graphics/factorio.png",
     size = 64,
     priority = "extra-high-no-scale"
   }
