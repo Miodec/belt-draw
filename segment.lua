@@ -80,6 +80,9 @@ function Segment:get_compatibility(entity, node)
 
 
   if type == "transport-belt" then
+    if (entity.belt_shape == "right" or entity.belt_shape == "left") and entity.belt_neighbours.outputs[1] and entity.belt_neighbours.inputs[1] then
+      return "block"
+    end
     if (entity.belt_shape == "straight" and entity.belt_neighbours.outputs[1] and entity.direction ~= node.direction and entity.direction ~= (node.direction + 8) % 16) then
       return "block"
     else
