@@ -59,6 +59,13 @@ function Segment:check_orientation_override()
     else
       self.orientation_override = "horizontal"
     end
+  elseif type == "underground-belt" and entity.belt_to_ground_type == "output" then
+    local direction = entity.direction
+    if direction == defines.direction.north or direction == defines.direction.south then
+      self.orientation_override = "vertical"
+    else
+      self.orientation_override = "horizontal"
+    end
   end
 end
 
