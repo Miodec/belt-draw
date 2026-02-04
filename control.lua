@@ -155,7 +155,7 @@ local function on_release(player, event, mode)
     -- mark entities for deconstruction
     local entities = player.surface.find_entities_filtered({
       area = event.area,
-      type = { "transport-belt", "underground-belt" },
+      type = { "transport-belt", "underground-belt", "splitter" },
     })
     for _, e in pairs(entities) do
       e.order_deconstruction(player.force, player)
