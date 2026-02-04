@@ -47,6 +47,45 @@ function Segment.new(from, first_node_direction, player, self_id)
   return self
 end
 
+---@param node Node
+---@return LuaEntity|nil
+function Segment:find_entity_at_node(node)
+  local entity = self.player.surface.find_entities_filtered({
+    area = { { node.x - 0.5, node.y - 0.5 }, { node.x + 0.5, node.y + 0.5 } }
+  })[1]
+  if entity and entity.type == "character" then
+    return nil
+  end
+  return entity
+end
+
+---@param entity LuaEntity
+---@param direction defines.direction
+---@return boolean
+function Segment:is_compatible_belt(entity, direction)
+  local type = entity.type == "entity-ghost" and entity.ghost_type or entity.type
+  if type ~= "transport-belt" then
+    return false
+  end
+  return entity.direction == direction
+end
+
+---@param node Node
+---@return Position
+function Segment:get_next_position(node)
+  local pos = { x = node.x, y = node.y }
+  if node.direction == defines.direction.north then
+    pos.y = pos.y - 1
+  elseif node.direction == defines.direction.south then
+    pos.y = pos.y + 1
+  elseif node.direction == defines.direction.east then
+    pos.x = pos.x + 1
+  elseif node.direction == defines.direction.west then
+    pos.x = pos.x - 1
+  end
+  return pos
+end
+
 function Segment:check_orientation_override()
   local entity = self.player.surface.find_entities_filtered({
     area = {
@@ -399,7 +438,13 @@ function Segment:get_nodes(skip)
   return nodes
 end
 
----@param start_node Node
+---@param node Node
+---@return boolean
+local function is_underground_type(node)
+  local t = node.belt_type
+  return t == "down" or t == "under" or t == "up"
+end
+
 function Segment:invalidate_underground(start_node)
   -- Find the index of the start node
   local start_idx = nil
@@ -422,7 +467,7 @@ function Segment:invalidate_underground(start_node)
 
   -- Search backwards for entry
   for i = start_idx - 1, 1, -1 do
-    if self.nodes[i].belt_type == "down" or self.nodes[i].belt_type == "under" or self.nodes[i].belt_type == "up" then
+    if is_underground_type(self.nodes[i]) then
       min_idx = i
     else
       break
@@ -431,7 +476,7 @@ function Segment:invalidate_underground(start_node)
 
   -- Search forwards for exit
   for i = start_idx + 1, #self.nodes do
-    if self.nodes[i].belt_type == "down" or self.nodes[i].belt_type == "under" or self.nodes[i].belt_type == "up" then
+    if is_underground_type(self.nodes[i]) then
       max_idx = i
     else
       break
@@ -451,11 +496,9 @@ end
 
 function Segment:plan_belts(skip)
   skip = skip or 0
-  print("plan_belts: skip=" .. skip .. ", nodes=" .. #self.nodes)
 
   -- When replanning from start (skip=0), clear all belt_types to allow fresh planning
   if skip == 0 then
-    print("  Clearing all belt_types (skip=0)")
     for _, node in ipairs(self.nodes) do
       node.belt_type = nil
     end
@@ -471,32 +514,26 @@ function Segment:plan_belts(skip)
   for i = #self.nodes, skip + 1, -1 do
     local node = self.nodes[i]
     local belt_type = node.belt_type
-    print("  [" .. i .. "] belt_type=" .. tostring(belt_type))
 
     -- Skip already assigned underground nodes
-    if belt_type == "under" or belt_type == "down" or belt_type == "up" then
-      print("    -> skip (already assigned)")
+    if is_underground_type(node) then
       goto continue
     end
 
     -- Check for blocking entities
-    ---@type LuaEntity|nil
-    local entity = self.player.surface.find_entities_filtered({
-      area = { { node.x - 0.5, node.y - 0.5 }, { node.x + 0.5, node.y + 0.5 } }
-    })[1]
-
-    if entity and entity.type == "character" then
-      entity = nil
-    end
-
+    local entity = self:find_entity_at_node(node)
     if entity then
-      print("    -> blocked by entity")
+      -- If it's a belt going in same direction, connect to it instead of blocking
+      if self:is_compatible_belt(entity, node.direction) then
+        node.belt_type = "above"
+        goto continue
+      end
+      
       node.belt_type = "blocked"
 
       -- Invalidate any underground that starts after this blocked node
       local next_node = self.nodes[i + 1]
-      if next_node and (next_node.belt_type == "down" or next_node.belt_type == "under" or next_node.belt_type == "up") then
-        print("    -> invalidating underground after blocked node")
+      if next_node and is_underground_type(next_node) then
         self:invalidate_underground(next_node)
       end
 
@@ -505,11 +542,9 @@ function Segment:plan_belts(skip)
 
     local prev = self.nodes[i - 1]
     if not prev then
-      print("    -> no prev node")
       node.belt_type = "above"
       goto continue
     end
-    print("    prev.belt_type=" .. tostring(prev.belt_type))
 
     -- Invalidate previous underground on direction change
     if prev.belt_type == "up" then
@@ -522,56 +557,33 @@ function Segment:plan_belts(skip)
     end
 
     -- Try to create underground belt if previous node is blocked
-    -- Check if prev is already marked as blocked, or if it will be blocked by an entity
     local prev_is_blocked = prev.belt_type == "blocked"
-    print("    prev.belt_type=" .. tostring(prev.belt_type))
     if not prev_is_blocked and prev.belt_type == nil then
-      -- Check if there's an entity blocking prev
-      local prev_entity = self.player.surface.find_entities_filtered({
-        area = { { prev.x - 0.5, prev.y - 0.5 }, { prev.x + 0.5, prev.y + 0.5 } }
-      })[1]
-      if prev_entity and prev_entity.type ~= "character" then
-        prev_is_blocked = true
-        print("    -> prev will be blocked by entity")
+      local prev_entity = self:find_entity_at_node(prev)
+      if prev_entity then
+        -- Don't consider it blocked if it's a compatible belt
+        prev_is_blocked = not self:is_compatible_belt(prev_entity, prev.direction)
       end
     end
 
-    print("    prev_is_blocked=" .. tostring(prev_is_blocked))
     if prev_is_blocked then
-      -- Before creating underground, check if this is a gap between entities
-      -- Check if there's an entity in the next position in the path direction
-      local next_pos = { x = node.x, y = node.y }
-      if node.direction == defines.direction.north then
-        next_pos.y = next_pos.y - 1
-      elseif node.direction == defines.direction.south then
-        next_pos.y = next_pos.y + 1
-      elseif node.direction == defines.direction.east then
-        next_pos.x = next_pos.x + 1
-      elseif node.direction == defines.direction.west then
-        next_pos.x = next_pos.x - 1
-      end
-
+      -- Check if this is a gap between entities (entity before and after)
+      local next_pos = self:get_next_position(node)
       local next_entity = self.player.surface.find_entities_filtered({
         area = { { next_pos.x - 0.5, next_pos.y - 0.5 }, { next_pos.x + 0.5, next_pos.y + 0.5 } }
       })[1]
-      local next_has_entity = next_entity and next_entity.type ~= "character"
+      local is_gap = next_entity and next_entity.type ~= "character"
 
-      print("    next_has_entity=" .. tostring(next_has_entity))
-      if next_has_entity then
-        print("    -> next position has entity, this is gap between entities, mark as blocked")
+      if is_gap then
         node.belt_type = "blocked"
         goto continue
       end
 
-      print("    -> searching for underground entry")
       local entry_idx, length = self:find_underground_entry(i)
       if entry_idx then
-        print("    -> creating underground: entry=" .. entry_idx .. ", exit=" .. i .. ", length=" .. length)
         self:create_underground(entry_idx, length)
         i = entry_idx + 1 -- Skip to avoid reprocessing
         goto continue
-      else
-        print("    -> no underground found")
       end
     end
 
@@ -587,7 +599,6 @@ end
 function Segment:find_underground_entry(exit_idx)
   local exit_dir = self.nodes[exit_idx].direction
   local length = 0
-  print("      find_underground_entry: exit_idx=" .. exit_idx .. ", exit_dir=" .. exit_dir)
 
   local best_entry_idx = nil
   local best_length = 0
@@ -599,80 +610,54 @@ function Segment:find_underground_entry(exit_idx)
     local blocked = self.nodes[blocked_idx]
     local entry = self.nodes[entry_idx]
 
-    print("        length=" .. length .. ", blocked_idx=" .. blocked_idx .. ", entry_idx=" .. entry_idx)
-
     if not entry then
-      print("        -> no entry node")
       break
     end
 
     if not blocked then
-      print("        -> no blocked node")
       break
     end
 
-    print("        blocked.direction=" .. blocked.direction .. ", blocked.belt_type=" .. tostring(blocked.belt_type))
-    print("        entry.direction=" .. entry.direction .. ", entry.belt_type=" .. tostring(entry.belt_type))
-
+    -- Direction must match throughout underground
     if blocked.direction ~= exit_dir then
-      print("        -> blocked direction mismatch")
       break
     end
 
-    -- Check if blocked node is actually blocked (either marked or has entity)
-    local blocked_is_blocked = blocked.belt_type == "blocked"
-    if not blocked_is_blocked and blocked.belt_type == nil then
-      local blocked_entity = self.player.surface.find_entities_filtered({
-        area = { { blocked.x - 0.5, blocked.y - 0.5 }, { blocked.x + 0.5, blocked.y + 0.5 } }
-      })[1]
-      if blocked_entity and blocked_entity.type ~= "character" then
-        blocked_is_blocked = true
-      end
-    end
+    -- Verify blocked node is actually blocked
+    local is_blocked = blocked.belt_type == "blocked" or 
+                       (blocked.belt_type == nil and self:find_entity_at_node(blocked))
 
-    -- Check if entry can be an above belt (not assigned to underground, not blocked by entity)
-    local entry_can_be_above = (entry.belt_type == "above" or entry.belt_type == nil)
-    print("        entry_can_be_above=" ..
-      tostring(entry_can_be_above) .. ", blocked_is_blocked=" .. tostring(blocked_is_blocked))
+    -- Entry must be available for use
+    local entry_available = entry.belt_type == "above" or entry.belt_type == nil
 
-    -- Found valid entry with proper direction
-    if entry_can_be_above and blocked_is_blocked and entry.direction == exit_dir then
-      print("        -> found potential entry")
-
-      -- Check if entry itself has an entity blocking it
-      local entry_entity = self.player.surface.find_entities_filtered({
-        area = { { entry.x - 0.5, entry.y - 0.5 }, { entry.x + 0.5, entry.y + 0.5 } }
-      })[1]
-      if entry_entity and entry_entity.type ~= "character" then
-        print("        -> entry blocked by entity, continue search")
+    -- Check if we can use this as an entry/exit pair
+    if entry_available and is_blocked and entry.direction == exit_dir then
+      -- Skip if entry has entity blocking it
+      if self:find_entity_at_node(entry) then
         length = length + 1
         goto continue_search
       end
 
-      -- Validate entry doesn't conflict with preceding node direction
+      -- Check for direction conflicts with previous node
       local before_entry = self.nodes[entry_idx - 1]
       if before_entry and before_entry.belt_type == "above" and before_entry.direction ~= entry.direction then
-        print("        -> entry conflicts with before_entry direction")
         break
       end
-      print("        -> VALID! entry_idx=" .. entry_idx .. ", length=" .. (length + 1))
+      
+      -- Valid entry found, continue searching for longer underground
       best_entry_idx = entry_idx
       best_length = length + 1
-      -- Continue to find longer underground
       length = length + 1
       goto continue_search
     end
 
-    -- If entry direction doesn't match, can't use it
-    if entry_can_be_above and blocked_is_blocked and entry.direction ~= exit_dir then
-      print("        -> entry direction mismatch")
+    -- Stop if entry direction doesn't match
+    if entry_available and is_blocked and entry.direction ~= exit_dir then
       break
     end
 
-    -- Only break if blocked node is assigned to something else (not blocked, not nil)
-    -- Allow nil (empty space) to continue the underground
+    -- Stop if blocked node is assigned to something else
     if blocked.belt_type ~= "blocked" and blocked.belt_type ~= nil then
-      print("        -> blocked is assigned to something else: " .. tostring(blocked.belt_type))
       break
     end
 
@@ -681,7 +666,6 @@ function Segment:find_underground_entry(exit_idx)
   end
 
   if best_entry_idx then
-    print("      -> returning best: entry=" .. best_entry_idx .. ", length=" .. best_length)
     return best_entry_idx, best_length
   end
 
@@ -691,19 +675,14 @@ end
 ---@param entry_idx number Entry node index
 ---@param length number Underground length
 function Segment:create_underground(entry_idx, length)
-  print("        create_underground: entry=" ..
-    entry_idx .. ", length=" .. length .. ", exit=" .. (entry_idx + length + 1))
-  print("          Setting node " .. entry_idx .. " to DOWN")
   self.nodes[entry_idx].belt_type = "down"
   self:update_render(self.nodes[entry_idx])
 
   for j = entry_idx + 1, entry_idx + length do
-    print("          Setting node " .. j .. " to UNDER")
     self.nodes[j].belt_type = "under"
     self:update_render(self.nodes[j])
   end
 
-  print("          Setting node " .. (entry_idx + length + 1) .. " to UP")
   self.nodes[entry_idx + length + 1].belt_type = "up"
   self:update_render(self.nodes[entry_idx + length + 1])
 end
