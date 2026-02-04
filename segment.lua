@@ -347,6 +347,9 @@ function Segment:plan_belts(skip)
   -- This function would determine the type of belt (above, down, up, under) for each node
   -- based on the game rules and existing entities on the surface.
   -- For now, we will leave it empty.
+  for _, node in pairs(self.nodes) do
+    node.belt_type = "above"
+  end
 end
 
 return Segment
