@@ -138,6 +138,8 @@ local function place(player, mode, node)
     player.surface.create_entity(entity)
     inventory.remove({ name = name, count = 1 })
   else
+    entity.name = "entity-ghost"
+    entity.ghost_name = name
     player.surface.create_entity(entity)
   end
 end
