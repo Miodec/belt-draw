@@ -702,18 +702,18 @@ function Segment:find_underground_entry(exit_idx)
 end
 
 ---@param entry_idx number Entry node index
----@param length number Underground length
-function Segment:create_underground(entry_idx, length)
+---@param exit_idx number Exit node index
+function Segment:create_underground(entry_idx, exit_idx)
   self.nodes[entry_idx].belt_type = "down"
   self:update_render(self.nodes[entry_idx])
 
-  for j = entry_idx + 1, entry_idx + length do
+  for j = entry_idx + 1, exit_idx - 1 do
     self.nodes[j].belt_type = "under"
     self:update_render(self.nodes[j])
   end
 
-  self.nodes[entry_idx + length + 1].belt_type = "up"
-  self:update_render(self.nodes[entry_idx + length + 1])
+  self.nodes[exit_idx].belt_type = "up"
+  self:update_render(self.nodes[exit_idx])
 end
 
 return Segment
