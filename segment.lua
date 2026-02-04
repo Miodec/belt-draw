@@ -67,7 +67,16 @@ function Segment:is_compatible_belt(entity, direction)
   if type ~= "transport-belt" then
     return false
   end
-  return entity.direction == direction
+
+  if entity.direction == direction then
+    return true
+  end
+
+  if entity.belt_shape == "straight" and entity.belt_neighbours.inputs[1] and entity.belt_neighbours.outputs[1] then
+    return false
+  end
+
+  return true
 end
 
 ---@param node Node
