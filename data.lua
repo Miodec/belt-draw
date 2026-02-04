@@ -151,15 +151,36 @@ data:extend({
   },
   {
     type = "sprite",
-    name = "belt-planner-arrow",
-    filename = "__belt-planner__/graphics/arrow.png",
+    name = "belt-planner-above",
+    filename = "__belt-planner__/graphics/above.png",
+    size = 64,
+    priority = "extra-high-no-scale"
+  },
+  {
+    type = "sprite",
+    name = "belt-planner-under",
+    filename = "__belt-planner__/graphics/under.png",
     size = 64,
     priority = "extra-high-no-scale"
   },
   {
     type = "sprite",
     name = "belt-planner-anchor",
-    filename = "__belt-planner__/graphics/anchor.png",
+    filename = "__belt-planner__/graphics/anchor2.png",
+    size = 64,
+    priority = "extra-high-no-scale"
+  },
+  {
+    type = "sprite",
+    name = "belt-planner-entryexit",
+    filename = "__belt-planner__/graphics/entryexit.png",
+    size = 64,
+    priority = "extra-high-no-scale"
+  },
+  {
+    type = "sprite",
+    name = "belt-planner-nil",
+    filename = "__belt-planner__/graphics/nil.png",
     size = 64,
     priority = "extra-high-no-scale"
   }

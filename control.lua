@@ -95,10 +95,6 @@ local function place(player, mode, node)
 
   local inventory = player.get_inventory(defines.inventory.character_main)
 
-  if not inventory then
-    return
-  end
-
   local name = nil
 
   if node.belt_type == "above" then
@@ -111,7 +107,7 @@ local function place(player, mode, node)
     return
   end
 
-  local count = inventory.get_item_count(name)
+  local count = inventory and inventory.get_item_count(name) or 0
 
   local dx = player.position.x - node.x
   local dy = player.position.y - node.y
@@ -134,12 +130,19 @@ local function place(player, mode, node)
     entity.belt_to_ground_type = "output"
   end
 
-  if count > 0 and can_reach then
+  if inventory and count > 0 and can_reach then
+    if entity.belt_to_ground_type and entity.belt_to_ground_type == "output" then
+      entity.direction = (entity.direction + 8) % 16
+    end
     player.surface.create_entity(entity)
     inventory.remove({ name = name, count = 1 })
   else
     entity.name = "entity-ghost"
     entity.ghost_name = name
+    if entity.belt_to_ground_type then
+      entity.type = entity.belt_to_ground_type
+      entity.belt_to_ground_type = nil
+    end
     player.surface.create_entity(entity)
   end
 end
@@ -152,7 +155,7 @@ local function on_release(player, event, mode)
     -- mark entities for deconstruction
     local entities = player.surface.find_entities_filtered({
       area = event.area,
-      type = "transport-belt"
+      type = { "transport-belt", "underground-belt" },
     })
     for _, e in pairs(entities) do
       e.order_deconstruction(player.force, player)
@@ -178,9 +181,9 @@ local function on_release(player, event, mode)
 end
 
 ---@param pos Position
----@param surface LuaSurface
-function add_segment(pos, surface)
-  local segment = Segment.new(pos, storage.starting_direction, surface, #storage.segments + 1)
+---@param player LuaPlayer
+function add_segment(pos, player)
+  local segment = Segment.new(pos, storage.starting_direction, player, #storage.segments + 1)
   table.insert(storage.segments, segment)
   storage.current_segment = segment
 
@@ -263,7 +266,7 @@ script.on_event("belt-planner-anchor", function(event)
   if not is_holding_bp_tool(player) then return end
   if storage.current_segment == nil then return end
 
-  add_segment(storage.current_segment.to, player.surface)
+  add_segment(storage.current_segment.to, player)
 
   player.create_local_flying_text({
     text = { "belt-planner.anchored" },
@@ -291,7 +294,7 @@ script.on_event(defines.events.on_pre_build, function(event)
   end
 
   if storage.current_segment == nil then
-    add_segment(pos, player.surface)
+    add_segment(pos, player)
   else
     storage.current_segment:update_to(pos)
   end

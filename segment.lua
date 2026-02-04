@@ -1,7 +1,7 @@
 local findLDivergencePoint = require("divergence")
 
 ---@alias Position {x: number, y: number}
----@alias Node {x: number, y: number, direction: defines.direction, render: LuaRenderObject? , belt_type: "above"|"down"|"up"|"under"?}
+---@alias Node {x: number, y: number, direction: defines.direction, render: LuaRenderObject? , belt_type: "above"|"down"|"up"|"under"|nil}
 
 
 ---@class Segment
@@ -12,16 +12,16 @@ local findLDivergencePoint = require("divergence")
 ---@field orientation "horizontal"|"vertical"|nil
 ---@field self_id number|nil
 ---@field nodes Node[]
----@field surface LuaSurface
+---@field player LuaPlayer
 ---@field orientation_override "horizontal"|"vertical"|nil
 local Segment = {}
 Segment.__index = Segment
 
 ---@param from Position
----@param surface LuaSurface
+---@param player LuaPlayer
 ---@param self_id number
 ---@return Segment
-function Segment.new(from, first_node_direction, surface, self_id)
+function Segment.new(from, first_node_direction, player, self_id)
   local self = setmetatable({}, Segment)
   self.from = from
   self.to = from
@@ -36,19 +36,23 @@ function Segment.new(from, first_node_direction, surface, self_id)
       y = from.y,
       direction = first_node_direction,
       render = nil,
+      belt_type = "above"
     }
   }
-  self.surface = surface
+  self.player = player
   self.orientation_override = nil
   self:check_orientation_override()
+  self:plan_belts()
   self:visualize()
   return self
 end
 
 function Segment:check_orientation_override()
-  local entity = self.surface.find_entities_filtered({
-    position = self.from,
-    radius = 0.9
+  local entity = self.player.surface.find_entities_filtered({
+    area = {
+      { self.from.x - 0.5, self.from.y - 0.5 },
+      { self.from.x + 0.5, self.from.y + 0.5 }
+    }
   })[1]
   local type = entity and (entity.type == "entity-ghost" and entity.ghost_type or entity.type)
 
@@ -136,14 +140,40 @@ function Segment:clear_visualization()
   end
 end
 
+local scale = 0.5
+
 ---@param node Node
-function Segment:draw_arrow(node)
+function Segment:render_anchor(node)
   local sprite = {
-    sprite = "belt-planner-arrow",
-    x_scale = 0.25,
-    y_scale = 0.25,
+    sprite = "belt-planner-anchor",
+    x_scale = scale,
+    y_scale = scale,
     target = { x = node.x, y = node.y },
-    surface = self.surface,
+    surface = self.player.surface,
+  }
+  node.render = rendering.draw_sprite(sprite)
+end
+
+---@param node Node
+function Segment:render_node(node)
+  local sprite_name = "belt-planner-nil"
+  if node.belt_type == "above" then
+    sprite_name = "belt-planner-above"
+  elseif node.belt_type == "under" then
+    sprite_name = "belt-planner-under"
+  elseif node.belt_type == "down" or node.belt_type == "up" then
+    sprite_name = "belt-planner-entryexit"
+  end
+
+
+  ---@type Position
+  local target = { x = node.x, y = node.y }
+  local sprite = {
+    sprite = sprite_name,
+    x_scale = scale,
+    y_scale = scale,
+    target = target,
+    surface = self.player.surface,
     ---@type number
     orientation = node.direction * 0.0625 - 0.25,
   }
@@ -151,15 +181,21 @@ function Segment:draw_arrow(node)
 end
 
 ---@param node Node
-function Segment:draw_anchor(node)
-  local sprite = {
-    sprite = "belt-planner-anchor",
-    x_scale = 0.25,
-    y_scale = 0.25,
-    target = { x = node.x, y = node.y },
-    surface = self.surface,
-  }
-  node.render = rendering.draw_sprite(sprite)
+function Segment:update_render(node)
+  if not node.render or not node.render.valid then
+    return
+  end
+
+  node.render.orientation = node.direction * 0.0625 - 0.25
+  if node.belt_type == "above" then
+    node.render.sprite = "belt-planner-above"
+  elseif node.belt_type == "under" then
+    node.render.sprite = "belt-planner-under"
+  elseif node.belt_type == "down" or node.belt_type == "up" then
+    node.render.sprite = "belt-planner-entryexit"
+  elseif node.belt_type == nil then
+    node.render.sprite = "belt-planner-nil"
+  end
 end
 
 ---@param divergence_index number?
@@ -177,14 +213,14 @@ function Segment:visualize(divergence_index)
       -- Update existing render object
       node.render.target = { x = node.x, y = node.y }
       if not is_anchor then
-        node.render.orientation = node.direction * 0.0625 - 0.25
+        self:update_render(node)
       end
     else
       -- Create new render object
       if is_anchor then
-        self:draw_anchor(node)
+        self:render_anchor(node)
       else
-        self:draw_arrow(node)
+        self:render_node(node)
       end
     end
   end
@@ -349,14 +385,155 @@ function Segment:get_nodes(skip)
   return nodes
 end
 
----@param skip number
+---@param start_node Node
+function Segment:invalidate_underground(start_node)
+  -- Find the index of the start node
+  local start_idx = nil
+  for i = 1, #self.nodes do
+    if self.nodes[i] == start_node then
+      start_idx = i
+      break
+    end
+  end
+
+  if not start_idx then
+    return
+  end
+
+  -- Find the full extent of the underground (entry to exit)
+  ---@type number
+  local min_idx = start_idx
+  ---@type number
+  local max_idx = start_idx
+
+  -- Search backwards for entry
+  for i = start_idx - 1, 1, -1 do
+    if self.nodes[i].belt_type == "down" or self.nodes[i].belt_type == "under" or self.nodes[i].belt_type == "up" then
+      min_idx = i
+    else
+      break
+    end
+  end
+
+  -- Search forwards for exit
+  for i = start_idx + 1, #self.nodes do
+    if self.nodes[i].belt_type == "down" or self.nodes[i].belt_type == "under" or self.nodes[i].belt_type == "up" then
+      max_idx = i
+    else
+      break
+    end
+  end
+
+  -- Invalidate all nodes in the underground
+  for i = min_idx, max_idx do
+    if self.nodes[i].belt_type == "down" or self.nodes[i].belt_type == "up" then
+      self.nodes[i].belt_type = "above"
+    elseif self.nodes[i].belt_type == "under" then
+      self.nodes[i].belt_type = nil
+    end
+    self:update_render(self.nodes[i])
+  end
+end
+
 function Segment:plan_belts(skip)
-  -- Placeholder for belt planning logic
-  -- This function would determine the type of belt (above, down, up, under) for each node
-  -- based on the game rules and existing entities on the surface.
-  -- For now, we will leave it empty.
-  for _, node in pairs(self.nodes) do
-    node.belt_type = "above"
+  -- Process backwards from end to skip
+  for i = #self.nodes, (skip or 0) + 1, -1 do
+    local node = self.nodes[i]
+
+    if node.belt_type == "under" and i == #self.nodes then
+      -- invalidate trailing underground
+      self:invalidate_underground(node)
+    end
+
+
+    -- Skip nodes that already have underground assignments
+    if node.belt_type == "under" or node.belt_type == "down" or node.belt_type == "up" then
+      goto continue
+    end
+
+    --- @type LuaEntity|nil
+    local entity = self.player.surface.find_entities_filtered({
+      area = {
+        { node.x - 0.5, node.y - 0.5 },
+        { node.x + 0.5, node.y + 0.5 }
+      }
+    })[1]
+
+    if entity and entity.type == "character" then
+      entity = nil
+    end
+
+    if entity then
+      node.belt_type = nil     -- Entity blocks placement
+    else
+      node.belt_type = "above" -- Can place regular belt
+
+      local previous_node = self.nodes[i - 1]
+
+      if not previous_node then
+        goto continue
+      end
+
+      -- Check if we need to invalidate previous underground due to direction change
+      if previous_node.belt_type == "up" then
+        local previous_previous_node = self.nodes[i - 2]
+        if previous_previous_node and
+            node.direction == previous_node.direction and
+            previous_node.direction ~= previous_previous_node.direction then
+          self:invalidate_underground(previous_node)
+        end
+      end
+
+      local entry_index = nil
+      local underground_length = 0
+      if previous_node.belt_type == nil then
+        local exit_direction = node.direction
+        while underground_length < 4 do
+          local check_node_blocked = self.nodes[i - underground_length - 1]
+          local check_node_entry = self.nodes[i - underground_length - 2]
+
+          if not check_node_entry then
+            break
+          end
+
+          if check_node_blocked.direction ~= exit_direction then
+            break
+          end
+
+          if check_node_entry.belt_type == "above" and check_node_blocked.belt_type == nil then
+            -- Verify entry node also has same direction
+            if check_node_entry.direction == exit_direction then
+              entry_index = i - underground_length - 2
+              underground_length = underground_length + 1
+            end
+            break
+          end
+
+          if check_node_blocked.belt_type ~= nil then
+            break
+          end
+
+          underground_length = underground_length + 1
+        end
+      end
+
+      if entry_index then
+        -- Set entry node to down
+        self.nodes[entry_index].belt_type = "down"
+        self:update_render(self.nodes[entry_index])
+        -- Set underground nodes to under
+        for j = entry_index + 1, entry_index + underground_length do
+          self.nodes[j].belt_type = "under"
+          self:update_render(self.nodes[j])
+        end
+        -- Set exit node to up
+        self.nodes[entry_index + underground_length + 1].belt_type = "up"
+        self:update_render(self.nodes[entry_index + underground_length + 1])
+      end
+
+      print(entry_index, underground_length)
+    end
+    ::continue::
   end
 end
 
