@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------
+Version: 2.0.1
+  Bugfixes:
+    - Fix unable to place belts if a belt connects to a splitter
+    - Fix belts replacing underground entries
+---------------------------------------------------------------------------------------------------
 Version: 2.0.0
   Features:
     - Add support for all belt tiers
