@@ -24,11 +24,8 @@ end
 ---@param event EventData.on_player_selected_area|EventData.on_player_alt_selected_area|EventData.on_player_reverse_selected_area
 ---@param mode "normal"|"alt"
 local function on_release(player, event, mode)
-  for _, segment in pairs(storage.segments) do
-    for _, node in pairs(segment.nodes) do
-      place(player, mode, node)
-    end
-  end
+  place(player, storage.segments)
+
   cleanup(player, true)
 end
 
