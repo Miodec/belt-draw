@@ -16,7 +16,7 @@ return {
   {
     type = "sprite",
     name = "belt-draw-anchor",
-    filename = "__belt-draw__/graphics/anchor2.png",
+    filename = "__belt-draw__/graphics/anchor.png",
     size = 64,
     priority = "extra-high-no-scale"
   },
