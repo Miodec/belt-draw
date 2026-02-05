@@ -1,4 +1,4 @@
-design/design.afdesign~lock~
-design/design.afdesign~lock~
+*.afdesign~lock~
+*.afdesign~lock~
 .DS_Store
-design/icon.afphoto~lock~
+*.afphoto~lock~
