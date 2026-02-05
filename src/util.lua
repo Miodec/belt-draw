@@ -51,10 +51,21 @@ end
 ---@param entity LuaEntity
 ---@return boolean
 function is_bd_entity(entity)
+  local name = entity.name
   if entity.type == "entity-ghost" then
-    return entity.ghost_name == "belt-draw-dummy-transport-belt" or entity.ghost_name == "belt-draw-dummy-entity"
+    name = entity.ghost_name
   end
-  return entity.name == "belt-draw-dummy-transport-belt" or entity.name == "belt-draw-dummy-entity"
+
+  if name == "belt-draw-dummy-entity" then
+    return true
+  end
+
+  for _, tier in pairs(tiers) do
+    if name == tier.dummy then
+      return true
+    end
+  end
+  return false
 end
 
 ---@param player LuaPlayer

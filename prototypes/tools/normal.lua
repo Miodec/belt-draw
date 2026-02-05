@@ -35,7 +35,7 @@ return {
     },
     flags = { "only-in-cursor", "spawnable", "not-stackable" },
     hidden = true,
-    place_result = "transport-belt",
+    place_result = "belt-draw-dummy-transport-belt",
     collision_mask = {
       layers = {
         ["belt-draw-layer"] = true
@@ -84,5 +84,19 @@ return {
         ["belt-draw-layer"] = true
       }
     }
+  },
+  {
+    type = "transport-belt",
+    name = "belt-draw-dummy-transport-belt",
+    icon = "__base__/graphics/icons/transport-belt.png",
+    icon_size = 64,
+    flags = { "placeable-neutral", "player-creation" },
+    minable = { mining_time = 0.1 },
+    speed = 1,
+    collision_box = { { -0.4, -0.4 }, { 0.4, 0.4 } },
+    belt_animation_set = data.raw["transport-belt"]["transport-belt"].belt_animation_set,
+    hidden_in_factoriopedia = true,
+    fast_replaceable_group = "transport-belt",
+    created_smoke = { smoke_name = "belt-draw-empty-smoke" } --- @diagnostic disable-line
   },
 }
