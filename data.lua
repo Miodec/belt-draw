@@ -47,9 +47,8 @@ data:extend({
       border_color = { a = 0 },
       cursor_box_type = "not-allowed",
     },
-    flags = { "only-in-cursor", "spawnable" },
+    flags = { "only-in-cursor", "spawnable", "not-stackable" },
     hidden = true,
-    draw_label_for_cursor_render = true,
     place_result = "belt-draw-dummy-transport-belt",
     collision_mask = {
       layers = {
@@ -90,9 +89,8 @@ data:extend({
       border_color = { a = 0 },
       cursor_box_type = "not-allowed",
     },
-    flags = { "only-in-cursor", "spawnable" },
+    flags = { "only-in-cursor", "spawnable", "not-stackable" },
     hidden = true,
-    draw_label_for_cursor_render = true,
     place_result = "belt-draw-dummy-entity",
     collision_mask = {
       layers = {
