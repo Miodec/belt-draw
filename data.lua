@@ -117,6 +117,7 @@ data:extend({
     collision_box = { { -0.4, -0.4 }, { 0.4, 0.4 } },
     collision_mask = { layers = {} },
     selectable_in_game = false,
+    hidden_in_factoriopedia = true,
     picture = {
       filename = "__core__/graphics/empty.png",
       size = 1
@@ -145,6 +146,7 @@ data:extend({
     speed = 1,
     collision_box = { { -0.4, -0.4 }, { 0.4, 0.4 } },
     belt_animation_set = data.raw["transport-belt"]["transport-belt"].belt_animation_set,
+    hidden_in_factoriopedia = true,
     fast_replaceable_group = "transport-belt",
     created_smoke = { smoke_name = "belt-draw-empty-smoke" } --- @diagnostic disable-line
   },
