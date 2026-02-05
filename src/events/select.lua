@@ -1,28 +1,29 @@
 ---@param player LuaPlayer
 ---@param event EventData.on_player_selected_area|EventData.on_player_alt_selected_area|EventData.on_player_reverse_selected_area
----@param mode "normal"|"alt"|"reverse"
-local function on_release(player, event, mode)
-  if mode == "reverse" then
-    -- mark entities for deconstruction
-    local entities = player.surface.find_entities_filtered({
-      area = event.area,
-      type = { "transport-belt", "underground-belt", "splitter" },
-    })
-    for _, e in pairs(entities) do
-      e.order_deconstruction(player.force, player)
-    end
-
-    local ghosts = player.surface.find_entities_filtered({
-      area = event.area,
-      name = "entity-ghost"
-    })
-    for _, g in pairs(ghosts) do
-      g.destroy()
-    end
-    cleanup(player, true)
-    return
+local function on_deconstruct(player, event)
+  -- mark entities for deconstruction
+  local entities = player.surface.find_entities_filtered({
+    area = event.area,
+    type = { "transport-belt", "underground-belt", "splitter" },
+  })
+  for _, e in pairs(entities) do
+    e.order_deconstruction(player.force, player)
   end
 
+  local ghosts = player.surface.find_entities_filtered({
+    area = event.area,
+    name = "entity-ghost"
+  })
+  for _, g in pairs(ghosts) do
+    g.destroy()
+  end
+  cleanup(player, true)
+end
+
+---@param player LuaPlayer
+---@param event EventData.on_player_selected_area|EventData.on_player_alt_selected_area|EventData.on_player_reverse_selected_area
+---@param mode "normal"|"alt"
+local function on_release(player, event, mode)
   for _, segment in pairs(storage.segments) do
     for _, node in pairs(segment.nodes) do
       place(player, mode, node)
@@ -62,5 +63,5 @@ script.on_event(defines.events.on_player_reverse_selected_area, function(event)
     return
   end
 
-  on_release(player, event, "reverse")
+  on_deconstruct(player, event)
 end)
