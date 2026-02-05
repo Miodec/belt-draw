@@ -20,6 +20,7 @@ data:extend({
     icon_size = 64,
     stack_size = 1,
     subgroup = "tool",
+    mouse_cursor = "arrow",
     order = "c[automated-construction]-d[belt-draw]",
     select = {
       mode = "nothing",
@@ -59,7 +60,7 @@ data:extend({
   {
     type = "selection-tool",
     name = "belt-draw",
-    icon = "__base__/graphics/icons/transport-belt.png",
+    mouse_cursor = "arrow",
     icon_size = 64,
     stack_size = 1,
     subgroup = "tool",
