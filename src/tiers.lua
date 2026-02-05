@@ -27,6 +27,30 @@ local tiers = {
       underground_belt = "fast-underground-belt",
     }
   },
+  express = {
+    name = "express",
+    tool = "belt-draw-express",
+    preview_tool = "belt-draw-express-preview",
+    string = "belt-draw-tiers.express",
+    max_underground_distance = 9,
+    dummy = "belt-draw-dummy-express-transport-belt",
+    place = {
+      belt = "express-transport-belt",
+      underground_belt = "express-underground-belt",
+    }
+  },
+  turbo = {
+    name = "turbo",
+    tool = "belt-draw-turbo",
+    preview_tool = "belt-draw-turbo-preview",
+    string = "belt-draw-tiers.turbo",
+    max_underground_distance = 11,
+    dummy = "belt-draw-dummy-turbo-transport-belt",
+    place = {
+      belt = "turbo-transport-belt",
+      underground_belt = "turbo-underground-belt",
+    }
+  },
 }
 
 ---@param tool_name string
