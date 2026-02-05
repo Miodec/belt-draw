@@ -4,5 +4,6 @@
   "title": "Belt Draw",
   "author": "Miodec",
   "factorio_version": "2.0",
-  "description": "Draw-to-place L-shaped belts with automatic undergrounds. R to place an anchor, F to flip, Right-click to remove."
+  "description": "Draw-to-place L-shaped belts with automatic undergrounds. R to place an anchor, F to flip, Right-click to remove.",
+  "dependencies": ["base >= 2.0", "? space-age"]
 }
