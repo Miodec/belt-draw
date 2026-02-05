@@ -63,9 +63,9 @@ local function set_tool(player)
   if cursor_stack then
     if not cursor_stack.valid_for_read or is_bp_tool(cursor_stack.name) or player.clear_cursor() then
       if storage.dragging == true then
-        cursor_stack.set_stack({ name = "belt-draw", count = 1 })
+        cursor_stack.set_stack({ name = "belt-draw" })
       else
-        cursor_stack.set_stack({ name = "belt-draw-preview", count = 1 })
+        cursor_stack.set_stack({ name = "belt-draw-preview" })
       end
     end
   end
