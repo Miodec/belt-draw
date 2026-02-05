@@ -1,4 +1,5 @@
 local findLDivergencePoint = require("divergence")
+local tiers = require("tiers")
 
 ---@alias BeltType "above"|"down"|"up"|"under"|"under_entity"|"blocked"|"above_connect"
 ---@alias Position {x: number, y: number}
@@ -15,14 +16,16 @@ local findLDivergencePoint = require("divergence")
 ---@field nodes Node[]
 ---@field player LuaPlayer
 ---@field orientation_override "horizontal"|"vertical"|nil
+---@field belt_tier BeltTier
 local Segment = {}
 Segment.__index = Segment
 
 ---@param from Position
 ---@param player LuaPlayer
 ---@param self_id number
+---@param belt_tier BeltTier
 ---@return Segment
-function Segment.new(from, first_node_direction, player, self_id)
+function Segment.new(from, first_node_direction, player, self_id, belt_tier)
   local self = setmetatable({}, Segment)
   self.from = from
   self.to = from
@@ -42,6 +45,7 @@ function Segment.new(from, first_node_direction, player, self_id)
   }
   self.player = player
   self.orientation_override = nil
+  self.belt_tier = belt_tier
   self:check_orientation_override()
   self:plan_belts()
   self:visualize()
@@ -564,6 +568,8 @@ function Segment:plan_belts(skip)
     end
   end
 
+  local tier_data = tiers[self.belt_tier]
+
   for i = 1, #self.nodes do
     local node = self.nodes[i]
 
@@ -573,7 +579,7 @@ function Segment:plan_belts(skip)
 
       -- If we found both entry and exit, create underground
       if entry_idx and exit_idx then
-        if (exit_idx - entry_idx - 1) > 4 then
+        if (exit_idx - entry_idx - 1) > tier_data.max_underground_distance then
           -- Limit underground length to 4 belts
           goto continue
         end

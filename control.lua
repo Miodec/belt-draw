@@ -250,7 +250,7 @@ end
 ---@param pos Position
 ---@param player LuaPlayer
 function add_segment(pos, player)
-  local segment = Segment.new(pos, storage.starting_direction, player, #storage.segments + 1)
+  local segment = Segment.new(pos, storage.starting_direction, player, #storage.segments + 1, storage.current_tier)
   table.insert(storage.segments, segment)
   storage.current_segment = segment
 
