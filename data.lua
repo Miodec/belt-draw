@@ -2,6 +2,7 @@ local modules = {
   require("prototypes.tools.generic"),
   require("prototypes.tools.normal"),
   require("prototypes.tools.fast"),
+  require("prototypes.tools.express"),
   require("prototypes.other"),
   require("prototypes.entities"),
   require("prototypes.input"),
