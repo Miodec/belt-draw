@@ -38,20 +38,23 @@ local tiers = {
       belt = "express-transport-belt",
       underground_belt = "express-underground-belt",
     }
-  },
-  turbo = {
+  }
+}
+
+if script.active_mods["space-age"] then
+  tiers.turbo = {
     name = "turbo",
     tool = "belt-draw-turbo",
     preview_tool = "belt-draw-turbo-preview",
-    string = "belt-draw-tiers.turbo",
+    string = "belt-draw.tier-turbo",
     max_underground_distance = 11,
     dummy = "belt-draw-dummy-turbo-transport-belt",
     place = {
       belt = "turbo-transport-belt",
       underground_belt = "turbo-underground-belt",
     }
-  },
-}
+  }
+end
 
 ---@param tool_name string
 ---@return BeltTier?

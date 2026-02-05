@@ -12,6 +12,14 @@ for _, module in pairs(modules) do
   data:extend(module)
 end
 
+if mods["space-age"] then
+  for _, module in pairs({
+    require("prototypes.tools.turbo"),
+  }) do
+    data:extend(module)
+  end
+end
+
 data:extend({
   {
     type = "shortcut",
