@@ -46,7 +46,7 @@ return {
     },
     flags = { "only-in-cursor", "spawnable", "not-stackable" },
     hidden = true,
-    place_result = "belt-draw-dummy-transport-belt",
+    place_result = "transport-belt",
     collision_mask = {
       layers = {
         ["belt-draw-layer"] = true
