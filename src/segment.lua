@@ -83,7 +83,9 @@ function Segment:get_compatibility(entity, node)
   end
 
   if (type == "underground-belt") then
-    if (entity.direction == node.direction or entity.direction == (node.direction + 8) % 16) then
+    if (entity.direction == node.direction) then
+      return "connect"
+    elseif (entity.direction == node.direction or entity.direction == (node.direction + 8) % 16) then
       -- if (entity.direction == node.direction or entity.direction == (node.direction + 8) % 16) then
       return "replace"
     else
