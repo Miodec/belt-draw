@@ -15,6 +15,7 @@ cp -r . "$PACKAGE_DIR"
 # Remove unnecessary files/folders
 rm -rf "$PACKAGE_DIR/.git"
 rm -rf "$PACKAGE_DIR/.luarc.json"
+rm -rf "$PACKAGE_DIR/.gitignore"
 rm -rf "$PACKAGE_DIR/design"
 rm -rf "$PACKAGE_DIR/.vscode"
 rm -f "$PACKAGE_DIR/package.sh"
