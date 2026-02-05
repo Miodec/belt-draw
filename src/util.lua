@@ -1,4 +1,31 @@
 local tiers = require("tiers")
+local Segment = require("src.segment")
+
+---@param pos Position
+---@param player LuaPlayer
+function add_segment(pos, player)
+  local segment = Segment.new(pos, storage.starting_direction, player, #storage.segments + 1, storage.current_tier)
+  table.insert(storage.segments, segment)
+  storage.current_segment = segment
+
+  for _, seg in pairs(storage.segments) do
+    seg:update_max_segment_id(#storage.segments)
+  end
+end
+
+---@param player LuaPlayer
+---@param setTool boolean
+function cleanup(player, setTool)
+  for _, segment in pairs(storage.segments) do
+    segment:destroy()
+  end
+  storage.segments = {}
+  storage.current_segment = nil
+  storage.dragging = false
+  if setTool == nil or setTool == true then
+    set_tool(player)
+  end
+end
 
 ---@param tool_name string
 ---@return boolean
