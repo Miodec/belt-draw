@@ -652,3 +652,4 @@ end
 return Segment
 ---@export Node
 ---@export Position
+---@export Segment
