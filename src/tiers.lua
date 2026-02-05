@@ -1,4 +1,4 @@
----@alias BeltTier "normal"|"fast"
+---@alias BeltTier "normal"|"fast"|"express"|"turbo"
 ---@alias BeltTierData {name: BeltTier, tool: string, preview_tool: string, string: string, place: {belt: string, underground_belt: string}}
 
 ---@type table<BeltTier, BeltTierData>
@@ -7,7 +7,7 @@ local tiers = {
     name = "normal",
     tool = "belt-draw",
     preview_tool = "belt-draw-preview",
-    string = "belt-draw-tiers.normal",
+    string = "belt-draw.tier-normal",
     max_underground_distance = 4,
     dummy = "belt-draw-dummy-transport-belt",
     place = {
@@ -19,7 +19,7 @@ local tiers = {
     name = "fast",
     tool = "belt-draw-fast",
     preview_tool = "belt-draw-fast-preview",
-    string = "belt-draw-tiers.fast",
+    string = "belt-draw.tier-fast",
     max_underground_distance = 7,
     dummy = "belt-draw-dummy-fast-transport-belt",
     place = {
@@ -31,7 +31,7 @@ local tiers = {
     name = "express",
     tool = "belt-draw-express",
     preview_tool = "belt-draw-express-preview",
-    string = "belt-draw-tiers.express",
+    string = "belt-draw.tier-express",
     max_underground_distance = 9,
     dummy = "belt-draw-dummy-express-transport-belt",
     place = {

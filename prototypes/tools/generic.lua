@@ -1,3 +1,5 @@
+local tooltip = require("tooltip")
+
 return {
   {
     type = "item",
@@ -14,6 +16,7 @@ return {
       layers = {
         ["belt-draw-layer"] = true
       }
-    }
+    },
+    custom_tooltip_fields = tooltip
   },
 }

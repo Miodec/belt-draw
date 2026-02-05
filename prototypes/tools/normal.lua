@@ -1,3 +1,10 @@
+local tooltip = require("tooltip")
+
+local transport_belt = table.deepcopy(data.raw["transport-belt"]["transport-belt"])
+transport_belt.name = "belt-draw-dummy-transport-belt"
+transport_belt.created_smoke = { smoke_name = "belt-draw-empty-smoke" } --- @diagnostic disable-line
+
+
 return {
   {
     type = "selection-tool",
@@ -40,7 +47,8 @@ return {
       layers = {
         ["belt-draw-layer"] = true
       }
-    }
+    },
+    custom_tooltip_fields = tooltip
   },
   {
     type = "selection-tool",
@@ -85,18 +93,5 @@ return {
       }
     }
   },
-  {
-    type = "transport-belt",
-    name = "belt-draw-dummy-transport-belt",
-    icon = "__base__/graphics/icons/transport-belt.png",
-    icon_size = 64,
-    flags = { "placeable-neutral", "player-creation" },
-    minable = { mining_time = 0.1 },
-    speed = 1,
-    collision_box = { { -0.4, -0.4 }, { 0.4, 0.4 } },
-    belt_animation_set = data.raw["transport-belt"]["transport-belt"].belt_animation_set,
-    hidden_in_factoriopedia = true,
-    fast_replaceable_group = "transport-belt",
-    created_smoke = { smoke_name = "belt-draw-empty-smoke" } --- @diagnostic disable-line
-  },
+  transport_belt
 }
