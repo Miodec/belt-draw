@@ -26,7 +26,7 @@ function place(player, segments)
       end
 
       if name == nil then
-        return
+        goto continue
       end
 
       local count = inventory and inventory.get_item_count(name) or 0
@@ -88,6 +88,7 @@ function place(player, segments)
           end
         end
       end
+      ::continue::
     end
   end
 end
