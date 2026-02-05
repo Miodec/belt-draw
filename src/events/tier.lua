@@ -1,7 +1,10 @@
 script.on_event("belt-draw-next-tier", function(event)
   local player = game.get_player(event.player_index) --- @diagnostic disable-line
   if not player then return end
-  if storage.dragging then return end
+  if storage.dragging then
+    player.print({ "belt-draw.cannot-switch-tier-while-dragging" })
+    return
+  end
 
   if not is_holding_bd_tool(player) then return end
 
@@ -21,7 +24,10 @@ end)
 script.on_event("belt-draw-previous-tier", function(event)
   local player = game.get_player(event.player_index) --- @diagnostic disable-line
   if not player then return end
-  if storage.dragging then return end
+  if storage.dragging then
+    player.print({ "belt-draw.cannot-switch-tier-while-dragging" })
+    return
+  end
 
   if not is_holding_bd_tool(player) then return end
 
