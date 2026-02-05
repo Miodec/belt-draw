@@ -1,5 +1,7 @@
 local Segment = require("segment")
 
+if script.active_mods["gvv"] then require("__gvv__.gvv")() end
+
 ---@class StorageData
 ---@field rendering_target LuaEntity?
 ---@field starting_direction defines.direction?
