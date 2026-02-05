@@ -1,25 +1,27 @@
-local normal_tools = require("prototypes.tools.normal")
-local other_tools = require("prototypes.other")
-local entities = require("prototypes.entities")
-local input = require("prototypes.input")
-local sprites = require("prototypes.sprites")
+local modules = {
+  require("prototypes.tools.generic"),
+  require("prototypes.tools.normal"),
+  require("prototypes.tools.fast"),
+  require("prototypes.other"),
+  require("prototypes.entities"),
+  require("prototypes.input"),
+  require("prototypes.sprites"),
+}
 
-for _, prototype in pairs(normal_tools) do
-  data:extend({ prototype })
+for _, module in pairs(modules) do
+  data:extend(module)
 end
 
-for _, prototype in pairs(other_tools) do
-  data:extend({ prototype })
-end
-
-for _, prototype in pairs(entities) do
-  data:extend({ prototype })
-end
-
-for _, prototype in pairs(input) do
-  data:extend({ prototype })
-end
-
-for _, prototype in pairs(sprites) do
-  data:extend({ prototype })
-end
+data:extend({
+  {
+    type = "shortcut",
+    name = "belt-draw-shortcut",
+    action = "spawn-item",
+    item_to_spawn = "belt-draw-generic",
+    icon = "__belt-draw__/graphics/shortcut2.png",
+    icon_size = 128,
+    small_icon = "__belt-draw__/graphics/shortcut2.png",
+    small_icon_size = 128,
+    associated_control_input = "belt-draw-shortcut"
+  },
+})

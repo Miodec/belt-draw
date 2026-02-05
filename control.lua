@@ -1,4 +1,5 @@
 local Segment = require("segment")
+local tiers = require("tiers")
 
 if script.active_mods["gvv"] then require("__gvv__.gvv")() end
 
@@ -9,6 +10,7 @@ if script.active_mods["gvv"] then require("__gvv__.gvv")() end
 ---@field player_reach number?
 ---@field segments Segment[]
 ---@field current_segment Segment?
+---@field current_tier BeltTier
 
 ---@type StorageData
 storage = storage
@@ -21,6 +23,7 @@ script.on_init(function()
   storage.player_reach = nil
   storage.segments = {}
   storage.current_segment = nil
+  storage.current_tier = "normal"
 end)
 
 script.on_configuration_changed(function()
@@ -29,12 +32,65 @@ script.on_configuration_changed(function()
   storage.player_reach = storage.player_reach or nil
   storage.segments = storage.segments or {}
   storage.current_segment = storage.current_segment or nil
+  storage.current_tier = storage.current_tier or "normal"
 end)
 
 ---@param tool_name string
 ---@return boolean
 local function is_bp_tool(tool_name)
-  return tool_name == "belt-draw" or tool_name == "belt-draw-preview"
+  for _, tier in pairs(tiers) do
+    if tool_name == tier.tool or tool_name == tier.preview_tool then
+      return true
+    end
+  end
+  return false
+end
+
+---@param tool_name string
+---@return BeltTier?
+local function get_belt_tier(tool_name)
+  for tier_name, tier in pairs(tiers) do
+    if tool_name == tier.tool or tool_name == tier.preview_tool then
+      return tier_name
+    end
+  end
+  return nil
+end
+
+---@param current_tier BeltTier
+---@return BeltTier?
+local function get_next_belt_tier(current_tier)
+  ---@type BeltTier[]
+  local tier_names = {}
+  for tier_name, _ in pairs(tiers) do
+    table.insert(tier_names, tier_name)
+  end
+
+  for i, tier_name in ipairs(tier_names) do
+    if tier_name == current_tier then
+      local next_index = (i % #tier_names) + 1
+      return tier_names[next_index]
+    end
+  end
+  return nil
+end
+
+---@param current_tier BeltTier
+---@return BeltTier?
+local function get_previous_belt_tier(current_tier)
+  ---@type BeltTier[]
+  local tier_names = {}
+  for tier_name, _ in pairs(tiers) do
+    table.insert(tier_names, tier_name)
+  end
+
+  for i, tier_name in ipairs(tier_names) do
+    if tier_name == current_tier then
+      local next_index = (i - 2) % #tier_names + 1
+      return tier_names[next_index]
+    end
+  end
+  return nil
 end
 
 ---@param player LuaPlayer
@@ -58,14 +114,22 @@ local function is_bp_entity(entity)
 end
 
 ---@param player LuaPlayer
-local function set_tool(player)
+---@param belt_tier BeltTier?
+---@param notify boolean?
+local function set_tool(player, belt_tier, notify)
   local cursor_stack = player.cursor_stack
   if cursor_stack then
     if not cursor_stack.valid_for_read or is_bp_tool(cursor_stack.name) or player.clear_cursor() then
-      if storage.dragging == true then
-        cursor_stack.set_stack({ name = "belt-draw" })
-      else
-        cursor_stack.set_stack({ name = "belt-draw-preview" })
+      local tier_info = belt_tier and tiers[belt_tier] or tiers[storage.current_tier]
+
+      storage.current_tier = tier_info.name
+      cursor_stack.set_stack({ name = storage.dragging and tier_info.tool or tier_info.preview_tool })
+
+      if notify then
+        player.create_local_flying_text({
+          text = { tiers[storage.current_tier].string },
+          create_at_cursor = true
+        })
       end
     end
   end
@@ -97,12 +161,13 @@ local function place(player, mode, node)
 
   local inventory = player.get_inventory(defines.inventory.character_main)
 
-  local name = nil
+  local tier_info = tiers[storage.current_tier]
 
+  local name = nil
   if node.belt_type == "above" then
-    name = "transport-belt"
+    name = tier_info.place.belt
   elseif node.belt_type == "down" or node.belt_type == "up" then
-    name = "underground-belt"
+    name = tier_info.place.underground_belt
   end
 
   if name == nil then
@@ -233,7 +298,19 @@ script.on_event(defines.events.on_player_cursor_stack_changed, function(event)
     return
   end
 
+  local current_stack = player.cursor_stack
+  if not current_stack or not current_stack.valid_for_read then return end
+
+  if current_stack.name == "belt-draw-generic" then
+    set_tool(player, storage.current_tier, true)
+  end
+
   if is_holding_bp_tool(player) then
+    local belt_tier = get_belt_tier(current_stack.name)
+    if belt_tier then
+      storage.current_tier = belt_tier
+    end
+
     if player.character then
       if storage.player_reach == nil then
         storage.player_reach = player.character_build_distance_bonus
@@ -278,6 +355,45 @@ script.on_event("belt-draw-anchor", function(event)
     text = { "belt-draw.anchored" },
     create_at_cursor = true
   })
+end)
+
+script.on_event("belt-draw-next-tier", function(event)
+  local player = game.get_player(event.player_index) --- @diagnostic disable-line
+  if not player then return end
+  if storage.dragging then return end
+
+  if not is_holding_bp_tool(player) then return end
+
+  local current_stack = player.cursor_stack
+
+
+  if not current_stack or not current_stack.valid_for_read then return end
+
+  local current_tier = get_belt_tier(current_stack.name)
+  if not current_tier then return end
+  local next_tier = get_next_belt_tier(current_tier)
+
+  set_tool(player, next_tier, true)
+end)
+
+
+script.on_event("belt-draw-previous-tier", function(event)
+  local player = game.get_player(event.player_index) --- @diagnostic disable-line
+  if not player then return end
+  if storage.dragging then return end
+
+  if not is_holding_bp_tool(player) then return end
+
+  local current_stack = player.cursor_stack
+
+
+  if not current_stack or not current_stack.valid_for_read then return end
+
+  local current_tier = get_belt_tier(current_stack.name)
+  if not current_tier then return end
+  local previous_tier = get_previous_belt_tier(current_tier)
+
+  set_tool(player, previous_tier, true)
 end)
 
 script.on_event(defines.events.on_pre_build, function(event)

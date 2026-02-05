@@ -1,13 +1,13 @@
 return {
   {
     type = "selection-tool",
-    name = "belt-draw-preview",
-    icon = "__belt-draw__/graphics/pencil.png",
+    name = "belt-draw-fast-preview",
+    icon = "__belt-draw__/graphics/fast-pencil.png",
     icon_size = 64,
     stack_size = 1,
     subgroup = "tool",
     mouse_cursor = "arrow",
-    order = "c[automated-construction]-d[belt-draw]",
+    order = "c[automated-construction]-d[belt-draw-fast]",
     select = {
       mode = "nothing",
       border_color = { a = 0 },
@@ -35,7 +35,7 @@ return {
     },
     flags = { "only-in-cursor", "spawnable", "not-stackable" },
     hidden = true,
-    place_result = "transport-belt",
+    place_result = "fast-transport-belt",
     collision_mask = {
       layers = {
         ["belt-draw-layer"] = true
@@ -44,13 +44,13 @@ return {
   },
   {
     type = "selection-tool",
-    name = "belt-draw",
-    icon = "__belt-draw__/graphics/pencil.png",
+    name = "belt-draw-fast",
+    icon = "__belt-draw__/graphics/fast-pencil.png",
     icon_size = 64,
     mouse_cursor = "arrow",
     stack_size = 1,
     subgroup = "tool",
-    order = "c[automated-construction]-d[belt-draw]",
+    order = "c[automated-construction]-d[belt-draw-fast]",
     select = {
       mode = "nothing",
       border_color = { a = 0 },
