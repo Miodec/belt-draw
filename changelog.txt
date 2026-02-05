@@ -1,4 +1,20 @@
 ---------------------------------------------------------------------------------------------------
+Version: 2.0.0
+  Features:
+    - Add support for all belt tiers
+    - Notify that a part of the belt is out of reach or that some items are missing from inventory
+  Changes:
+    - Rework underground placement logic
+    - Update locale strings
+    - Update mod icon
+    - Update shortcut icon
+    - Update quickbar icons
+  Bugfixes:
+    - Remove "1" floating next to the cursor when drawing
+    - Make sure right click can deconstruct splitters too
+    - Hide dummy entities from Factoriopedia
+    - Made sure the mod works with Base game and Space Age
+---------------------------------------------------------------------------------------------------
 Version: 1.1.1
   Bugfixes:
     - Prevent double undergrounds
