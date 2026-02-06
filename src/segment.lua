@@ -117,6 +117,10 @@ function Segment:get_compatibility(entity, node)
 
 
   if type == "transport-belt" then
+    if #self.nodes == 1 then
+      return "replace"
+    end
+
     if (entity.belt_shape == "right" or entity.belt_shape == "left") and
         entity.belt_neighbours.outputs[1] and
         entity.belt_neighbours.inputs[1] and
