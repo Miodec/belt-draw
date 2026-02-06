@@ -72,6 +72,14 @@ function Segment:find_entity_at_node(node)
   return entity
 end
 
+function Segment:find_tile_at_node(node)
+  ---@type LuaTile?
+  local tile = self.player.surface.find_tiles_filtered({
+    area = { { node.x - 0.5, node.y - 0.5 }, { node.x + 0.5, node.y + 0.5 } }
+  })[1]
+  return tile
+end
+
 ---@param entity LuaEntity
 ---@param node Node
 ---@return "replace"|"block"|"connect"
@@ -81,9 +89,13 @@ function Segment:get_compatibility(entity, node)
     return "block"
   end
 
-  if (type == "splitter") then
-    if (entity.direction == node.direction) then
-      -- if (entity.direction == node.direction or entity.direction == (node.direction + 8) % 16) then
+  local same_dir = entity.direction == node.direction
+  local opposite_dir = entity.direction == (node.direction + 8) % 16
+  local perpendicular = (entity.direction + 4) % 16 == node.direction or (entity.direction + 12) % 16 == node
+      .direction
+
+  if type == "splitter" then
+    if same_dir then
       return "connect"
     else
       return "block"
@@ -91,10 +103,9 @@ function Segment:get_compatibility(entity, node)
   end
 
   if (type == "underground-belt") then
-    if (entity.direction == node.direction) then
+    if same_dir or perpendicular then
       return "connect"
-    elseif (entity.direction == node.direction or entity.direction == (node.direction + 8) % 16) then
-      -- if (entity.direction == node.direction or entity.direction == (node.direction + 8) % 16) then
+    elseif opposite_dir then
       return "replace"
     else
       return "block"
@@ -106,7 +117,7 @@ function Segment:get_compatibility(entity, node)
     if (entity.belt_shape == "right" or entity.belt_shape == "left") and entity.belt_neighbours.outputs[1] and entity.belt_neighbours.inputs[1] then
       return "block"
     end
-    if (entity.belt_shape == "straight" and entity.belt_neighbours.outputs[1] and entity.direction ~= node.direction and entity.direction ~= (node.direction + 8) % 16) then
+    if (entity.belt_shape == "straight" and entity.belt_neighbours.outputs[1] and not same_dir and not opposite_dir) then
       return "block"
     else
       return "replace"
@@ -561,20 +572,30 @@ function Segment:plan_belts(skip)
   for i = #self.nodes, skip + 1, -1 do
     local node = self.nodes[i]
 
-    -- Check for blocking entities
+    local can_place = self.player.surface.can_place_entity({
+      name = "transport-belt",
+      position = { x = node.x, y = node.y },
+      direction = node.direction,
+      force = self.player.force
+    })
+
     local entity = self:find_entity_at_node(node)
+
+    node.belt_type = "above"
+
+    if not can_place then
+      node.belt_type = "blocked"
+    end
+
     if entity then
-      -- If it's a belt going in same direction, connect to it instead of blocking
       local compat = self:get_compatibility(entity, node)
       if compat == "replace" then
         node.belt_type = "above"
       elseif compat == "connect" then
         node.belt_type = "above_connect"
-      else
+      elseif compat == "block" then
         node.belt_type = "blocked"
       end
-    else
-      node.belt_type = "above"
     end
   end
 
