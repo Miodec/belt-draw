@@ -238,7 +238,10 @@ function Segment:update_to(pos)
 
   local divergence = findLDivergencePoint(self.from, self.prev_to, self.to,
     prev_orientation or self.orientation or "horizontal")
-  local divergenceIndex = divergence and divergence.index or 0
+  local divergenceIndex = (divergence and divergence.index or 0) - tiers[self.belt_tier].max_underground_distance
+  if divergenceIndex < 0 then
+    divergenceIndex = 0
+  end
   self:update_midpoint()
   self:update_nodes(divergenceIndex)
   self:plan_belts(divergenceIndex)
