@@ -55,11 +55,19 @@ end
 ---@param node Node
 ---@return LuaEntity|nil
 function Segment:find_entity_at_node(node)
+  ---@type LuaEntity?
   local entity = self.player.surface.find_entities_filtered({
     area = { { node.x - 0.5, node.y - 0.5 }, { node.x + 0.5, node.y + 0.5 } }
   })[1]
-  if entity and entity.type == "character" then
-    return nil
+
+  if entity then
+    if entity.type == "vehicle" or
+        entity.type == "spider-vehicle" or
+        entity.type == "character" or
+        entity.type == "spider-leg"
+    then
+      entity = nil
+    end
   end
   return entity
 end
