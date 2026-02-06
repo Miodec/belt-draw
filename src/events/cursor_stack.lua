@@ -5,6 +5,23 @@ script.on_event(defines.events.on_player_cursor_stack_changed, function(event)
   end
 
   local current_stack = player.cursor_stack
+  local ghost = player.cursor_ghost and player.cursor_ghost.name
+
+  -- auto-update tier when picking up an entity or ghost
+  local tier_update_name = current_stack and current_stack.valid_for_read and current_stack.name or ghost and ghost.name or
+      nil
+  if tier_update_name then
+    local tier = get_belt_tier_for_entity_name(tier_update_name)
+    if tier and storage.current_tier ~= tier then
+      player.create_local_flying_text {
+        text = { "belt-draw.tier-updated", { "belt-draw.tier-" .. tier } },
+        position = player.position,
+        create_at_cursor = true
+      }
+      storage.current_tier = tier
+    end
+  end
+
   if not current_stack or not current_stack.valid_for_read then return end
 
   if current_stack.name == "belt-draw-generic" then

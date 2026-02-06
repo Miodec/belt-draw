@@ -1,5 +1,5 @@
 ---@alias BeltTier "normal"|"fast"|"express"|"turbo"
----@alias BeltTierData {name: BeltTier, tool: string, preview_tool: string, string: string, place: {belt: string, underground_belt: string}}
+---@alias BeltTierData {name: BeltTier, tool: string, preview_tool: string, string: string, entities: {belt: string, underground_belt: string, splitter: string}, max_underground_distance: number, dummy: string}
 
 ---@type table<BeltTier, BeltTierData>
 local tiers = {
@@ -13,6 +13,7 @@ local tiers = {
     entities = {
       belt = "transport-belt",
       underground_belt = "underground-belt",
+      splitter = "splitter",
     }
   },
   fast = {
@@ -25,6 +26,7 @@ local tiers = {
     entities = {
       belt = "fast-transport-belt",
       underground_belt = "fast-underground-belt",
+      splitter = "fast-splitter",
     }
   },
   express = {
@@ -37,6 +39,7 @@ local tiers = {
     entities = {
       belt = "express-transport-belt",
       underground_belt = "express-underground-belt",
+      splitter = "express-splitter",
     }
   }
 }
@@ -52,6 +55,7 @@ if script.active_mods["space-age"] then
     entities = {
       belt = "turbo-transport-belt",
       underground_belt = "turbo-underground-belt",
+      splitter = "turbo-splitter",
     }
   }
 end
@@ -61,6 +65,17 @@ end
 function get_belt_tier(tool_name)
   for tier_name, tier in pairs(tiers) do
     if tool_name == tier.tool or tool_name == tier.preview_tool then
+      return tier_name
+    end
+  end
+  return nil
+end
+
+---@param entity_name string
+---@return BeltTier?
+function get_belt_tier_for_entity_name(entity_name)
+  for tier_name, tier in pairs(tiers) do
+    if entity_name == tier.entities.belt or entity_name == tier.entities.underground_belt or entity_name == tier.entities.splitter then
       return tier_name
     end
   end
