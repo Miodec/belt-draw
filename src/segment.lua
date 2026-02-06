@@ -655,6 +655,11 @@ function Segment:plan_belts(skip)
           self:invalidate_underground(self.nodes[entry_idx])
           goto continue
         end
+
+        if entry_idx > 1 and self.nodes[entry_idx - 1].direction ~= entry_node.direction then
+          self:invalidate_underground(self.nodes[entry_idx])
+          goto continue
+        end
       end
     end
     -- in a loop, check previous nodes. if its blocked, continue, if its above, set it to down
