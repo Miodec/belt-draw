@@ -17,6 +17,7 @@ local tiers = require("tiers")
 ---@field player LuaPlayer
 ---@field orientation_override "horizontal"|"vertical"|nil
 ---@field belt_tier BeltTier
+---@field last_segment Segment?
 local Segment = {}
 Segment.__index = Segment
 
@@ -24,8 +25,9 @@ Segment.__index = Segment
 ---@param player LuaPlayer
 ---@param self_id number
 ---@param belt_tier BeltTier
+---@param last_segment Segment?
 ---@return Segment
-function Segment.new(from, first_node_direction, player, self_id, belt_tier)
+function Segment.new(from, first_node_direction, player, self_id, belt_tier, last_segment)
   local self = setmetatable({}, Segment)
   self.from = from
   self.to = from
@@ -46,6 +48,7 @@ function Segment.new(from, first_node_direction, player, self_id, belt_tier)
   self.player = player
   self.orientation_override = nil
   self.belt_tier = belt_tier
+  self.last_segment = last_segment
   self:check_orientation_override()
   self:plan_belts()
   self:visualize()
@@ -144,6 +147,17 @@ function Segment:get_next_position(node)
 end
 
 function Segment:check_orientation_override()
+  if self.last_segment then
+    -- anchor
+    local last_node_dir = self.last_segment.nodes[#self.last_segment.nodes].direction
+    if last_node_dir == defines.direction.north or last_node_dir == defines.direction.south then
+      self.orientation_override = "horizontal"
+    else
+      self.orientation_override = "vertical"
+    end
+    return
+  end
+
   local entity = self.player.surface.find_entities_filtered({
     area = {
       { self.from.x - 0.5, self.from.y - 0.5 },
