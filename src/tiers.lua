@@ -82,6 +82,17 @@ function get_belt_tier_for_entity_name(entity_name)
   return nil
 end
 
+---@param entity_name string
+---@return BeltTier?
+function get_belt_tier_for_belt_name(entity_name)
+  for tier_name, tier in pairs(tiers) do
+    if entity_name == tier.entities.belt then
+      return tier_name
+    end
+  end
+  return nil
+end
+
 ---@param current_tier BeltTier
 ---@return BeltTier?
 function get_next_belt_tier(current_tier)

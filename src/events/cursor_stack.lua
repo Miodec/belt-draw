@@ -7,19 +7,27 @@ script.on_event(defines.events.on_player_cursor_stack_changed, function(event)
   local current_stack = player.cursor_stack
   local ghost = player.cursor_ghost and player.cursor_ghost.name
 
-  -- auto-update tier when picking up an entity or ghost
   local cursor_entity_or_ghost_name = current_stack and current_stack.valid_for_read and current_stack.name or
       ghost and ghost.name or
       nil
   if cursor_entity_or_ghost_name then
-    local tier = get_belt_tier_for_entity_name(cursor_entity_or_ghost_name)
-    if tier and storage.current_tier ~= tier then
-      player.create_local_flying_text {
-        text = { "belt-draw.tier-updated", { "belt-draw.tier-" .. tier } },
-        position = player.position,
-        create_at_cursor = true
-      }
-      storage.current_tier = tier
+    if settings.get_player_settings(player)["belt-draw-replace-belt-with-tool"].value then
+      -- auto-switch to the tool when picking up a belt or ghost if enabled
+      local tier = get_belt_tier_for_belt_name(cursor_entity_or_ghost_name)
+      if tier then
+        set_tool(player, tier, false)
+      end
+    else
+      -- auto-update tier when picking up an entity or ghost
+      local tier = get_belt_tier_for_entity_name(cursor_entity_or_ghost_name)
+      if tier and storage.current_tier ~= tier then
+        player.create_local_flying_text {
+          text = { "belt-draw.tier-updated", { "belt-draw.tier-" .. tier } },
+          position = player.position,
+          create_at_cursor = true
+        }
+        storage.current_tier = tier
+      end
     end
   end
 
