@@ -583,12 +583,6 @@ function Segment:plan_belts(skip)
     end
   end
 
-
-  -- Invalidate incomplete underground at end
-  if self.nodes[#self.nodes].belt_type == "under" then
-    self:invalidate_underground(self.nodes[#self.nodes])
-  end
-
   -- Process backwards from end to skip
   for i = #self.nodes, skip + 1, -1 do
     local node = self.nodes[i]
