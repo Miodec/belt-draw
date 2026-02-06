@@ -10,7 +10,7 @@ local tiers = {
     string = "belt-draw.tier-normal",
     max_underground_distance = 4,
     dummy = "belt-draw-dummy-transport-belt",
-    place = {
+    entities = {
       belt = "transport-belt",
       underground_belt = "underground-belt",
     }
@@ -22,7 +22,7 @@ local tiers = {
     string = "belt-draw.tier-fast",
     max_underground_distance = 7,
     dummy = "belt-draw-dummy-fast-transport-belt",
-    place = {
+    entities = {
       belt = "fast-transport-belt",
       underground_belt = "fast-underground-belt",
     }
@@ -34,7 +34,7 @@ local tiers = {
     string = "belt-draw.tier-express",
     max_underground_distance = 9,
     dummy = "belt-draw-dummy-express-transport-belt",
-    place = {
+    entities = {
       belt = "express-transport-belt",
       underground_belt = "express-underground-belt",
     }
@@ -49,7 +49,7 @@ if script.active_mods["space-age"] then
     string = "belt-draw.tier-turbo",
     max_underground_distance = 11,
     dummy = "belt-draw-dummy-turbo-transport-belt",
-    place = {
+    entities = {
       belt = "turbo-transport-belt",
       underground_belt = "turbo-underground-belt",
     }

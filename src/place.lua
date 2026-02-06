@@ -20,9 +20,9 @@ function place(player, segments)
 
       local name = nil
       if node.belt_type == "above" then
-        name = tier_info.place.belt
+        name = tier_info.entities.belt
       elseif node.belt_type == "down" or node.belt_type == "up" then
-        name = tier_info.place.underground_belt
+        name = tier_info.entities.underground_belt
       end
 
       if name == nil then
