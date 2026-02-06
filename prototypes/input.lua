@@ -25,4 +25,12 @@ return {
     consuming = "game-only",
     order = "a[mod]-b[belt-draw-previous-tier]",
   },
+  {
+    type = "custom-input",
+    name = "belt-draw-cancel",
+    key_sequence = "",
+    linked_game_control = "clear-cursor",
+    consuming = "none",
+    order = "a[mod]-b[belt-draw-cancel]",
+  },
 }

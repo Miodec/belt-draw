@@ -1,4 +1,4 @@
-local tiers = require("tiers")
+local tiers = require("src.tiers")
 local Segment = require("src.segment")
 
 ---@param pos Position
