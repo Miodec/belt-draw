@@ -13,10 +13,6 @@ function add_segment(pos, player)
     storage.current_segment)
   table.insert(storage.segments, segment)
   storage.current_segment = segment
-
-  for _, seg in pairs(storage.segments) do
-    seg:update_max_segment_id(#storage.segments)
-  end
 end
 
 ---@param player LuaPlayer

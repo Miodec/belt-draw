@@ -1,4 +1,8 @@
 ---------------------------------------------------------------------------------------------------
+Version: 2.1.3
+  Bugfixes:
+    - Fix crash when drawing (oops)
+---------------------------------------------------------------------------------------------------
 Version: 2.1.2
   Bugfixes:
     - Make sure undergrounds are added when colliding with previous segments
