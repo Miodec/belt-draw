@@ -1,4 +1,21 @@
 ---------------------------------------------------------------------------------------------------
+Version: 2.1.0
+  Features:
+    - Add setting to replace belts with belt draw tools when pipetting
+    - Update current tier when pipetting belts/undergrounds/splitters
+  Changes:
+    - Update anchor graphic
+  Bugfixes:
+    - Fix cursor clearing
+    - Fix missing localisation for next tier and previous tier
+    - Fix undergrounds being placed under vehicles
+    - Fix belts being placed over water
+    - Fix belts not being overridden when placing a single belt
+    - Fix underground belt logic when belt before doesn't connect
+    - Force perpendicular orientation when placing an anchor
+    - Improve compatibility with undergrounds
+    - Cleanup on clear cursor
+---------------------------------------------------------------------------------------------------
 Version: 2.0.1
   Bugfixes:
     - Fix unable to place belts if a belt connects to a splitter
