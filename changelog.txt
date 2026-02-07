@@ -1,5 +1,7 @@
 ---------------------------------------------------------------------------------------------------
 Version: 2.1.5
+  Features:
+    - Place an underground belt when dragging past a connecting entity (splitter, underground). You can still connect to the entity by stopping the drag before or at the entity.
   Bugfixes:
     - Fix unable to place belts over resources or under vehicles
 ---------------------------------------------------------------------------------------------------
