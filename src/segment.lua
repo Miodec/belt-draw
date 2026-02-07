@@ -620,7 +620,16 @@ function Segment:plan_belts(skip)
         ::continue::
       end
     end
+
+    -- if this node is above, previous is above_connect, and one before this is above
+    -- set previous node to blocked
+    if i <= #self.nodes - 2 and node.belt_type == "above" and self.nodes[i + 1].belt_type == "above_connect" and self.nodes[i + 2].belt_type == "above" then
+      self.nodes[i + 1].belt_type = "blocked"
+      self:update_render(self.nodes[i + 1])
+    end
   end
+
+
 
   local tier_data = tiers[self.belt_tier]
 
