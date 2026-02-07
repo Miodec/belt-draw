@@ -1,4 +1,8 @@
 ---------------------------------------------------------------------------------------------------
+Version: 2.1.5
+  Bugfixes:
+    - Fix unable to place belts over resources or under vehicles
+---------------------------------------------------------------------------------------------------
 Version: 2.1.4
   Features:
     - Add setting to swap deconstruct with left click, build belts with right click
