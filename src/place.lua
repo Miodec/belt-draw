@@ -9,7 +9,7 @@ function place(player, segments)
 
   for _, segment in pairs(segments) do
     for _, node in pairs(segment.nodes) do
-      if storage.player_reach then
+      if storage.player_reach and player.character then
         player.character_build_distance_bonus = storage.player_reach
         storage.player_reach = nil
       end
@@ -68,7 +68,7 @@ function place(player, segments)
         player.surface.create_entity(entity)
       end
 
-      if inventory then
+      if inventory and player.character then
         if count == 0 then
           if not missing_item_shown then
             player.create_local_flying_text({
