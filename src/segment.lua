@@ -606,6 +606,18 @@ function Segment:plan_belts(skip)
         node.belt_type = "blocked"
       end
     end
+
+    -- check for collision with previous segments
+    for _, segment in pairs(storage.segments) do
+      if segment == self then break end
+      for other_node_index, other_node in pairs(segment.nodes) do
+        if other_node.x == node.x and other_node.y == node.y then
+          node.belt_type = "blocked"
+          break
+        end
+        ::continue::
+      end
+    end
   end
 
   local tier_data = tiers[self.belt_tier]
