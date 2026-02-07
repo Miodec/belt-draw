@@ -1,4 +1,8 @@
 ---------------------------------------------------------------------------------------------------
+Version: 2.1.2
+  Bugfixes:
+    - Make sure undergrounds are added when colliding with previous segments
+---------------------------------------------------------------------------------------------------
 Version: 2.1.1
   Bugfixes:
     - Fix crash when using editor mode
