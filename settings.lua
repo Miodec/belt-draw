@@ -12,5 +12,12 @@ data:extend({
     setting_type = "runtime-per-user",
     default_value = false,
     order = "a",
+  },
+  {
+    type = "bool-setting",
+    name = "belt-draw-swap-left-right-click",
+    setting_type = "startup",
+    default_value = false,
+    order = "a",
   }
 })

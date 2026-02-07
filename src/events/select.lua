@@ -1,9 +1,9 @@
 ---@param player LuaPlayer
----@param event EventData.on_player_selected_area|EventData.on_player_alt_selected_area|EventData.on_player_reverse_selected_area
-local function on_deconstruct(player, event)
+---@param area BoundingBox
+local function on_deconstruct(player, area)
   -- mark entities for deconstruction
   local entities = player.surface.find_entities_filtered({
-    area = event.area,
+    area = area,
     type = { "transport-belt", "underground-belt", "splitter" },
   })
   for _, e in pairs(entities) do
@@ -11,7 +11,7 @@ local function on_deconstruct(player, event)
   end
 
   local ghosts = player.surface.find_entities_filtered({
-    area = event.area,
+    area = area,
     name = "entity-ghost"
   })
   for _, g in pairs(ghosts) do
@@ -21,9 +21,9 @@ local function on_deconstruct(player, event)
 end
 
 ---@param player LuaPlayer
----@param event EventData.on_player_selected_area|EventData.on_player_alt_selected_area|EventData.on_player_reverse_selected_area
+---@param area BoundingBox
 ---@param mode "normal"|"alt"
-local function on_release(player, event, mode)
+local function on_release(player, area, mode)
   place(player, storage.segments)
 
   cleanup(player, true)
@@ -38,7 +38,11 @@ script.on_event(defines.events.on_player_selected_area, function(event)
     return
   end
 
-  on_release(player, event, "normal")
+  if settings.startup["belt-draw-swap-left-right-click"].value then
+    on_deconstruct(player, event.area)
+  else
+    on_release(player, event.area, "normal")
+  end
 end)
 
 script.on_event(defines.events.on_player_alt_selected_area, function(event)
@@ -49,7 +53,12 @@ script.on_event(defines.events.on_player_alt_selected_area, function(event)
     return
   end
 
-  on_release(player, event, "alt")
+
+  if settings.startup["belt-draw-swap-left-right-click"].value then
+    -- do nothing
+  else
+    on_release(player, event.area, "alt")
+  end
 end)
 
 script.on_event(defines.events.on_player_reverse_selected_area, function(event)
@@ -60,5 +69,24 @@ script.on_event(defines.events.on_player_reverse_selected_area, function(event)
     return
   end
 
-  on_deconstruct(player, event)
+  if settings.startup["belt-draw-swap-left-right-click"].value then
+    on_release(player, event.area, "normal")
+  else
+    on_deconstruct(player, event.area)
+  end
+end)
+
+script.on_event(defines.events.on_player_alt_reverse_selected_area, function(event)
+  if not is_bd_tool(event.item) then return end
+
+  local player = game.get_player(event.player_index)
+  if not player then
+    return
+  end
+
+  if settings.startup["belt-draw-swap-left-right-click"].value then
+    on_release(player, event.area, "alt")
+  else
+    -- do nothing
+  end
 end)

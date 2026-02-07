@@ -6,8 +6,8 @@ return {
   subgroup = "tool",
   mouse_cursor = "arrow",
   select = {
-    mode = "nothing",
-    border_color = { a = 0 },
+    mode = settings.startup["belt-draw-swap-left-right-click"].value and "deconstruct" or "nothing",
+    border_color = { a = 0, r = settings.startup["belt-draw-swap-left-right-click"].value and 1 or 0 },
     cursor_box_type = "not-allowed",
   },
   alt_select = {
@@ -16,8 +16,8 @@ return {
     cursor_box_type = "not-allowed",
   },
   reverse_select = {
-    mode = "deconstruct",
-    border_color = { a = 0, r = 1 },
+    mode = settings.startup["belt-draw-swap-left-right-click"].value and "nothing" or "deconstruct",
+    border_color = { a = 0, r = settings.startup["belt-draw-swap-left-right-click"].value and 0 or 1 },
     cursor_box_type = "not-allowed",
   },
   alt_reverse_select = {

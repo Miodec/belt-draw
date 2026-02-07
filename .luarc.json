@@ -5,5 +5,7 @@
       "missing-parameter": "Any!",
       "missing-return": "Any!"
     }
-  }
+  },
+  "diagnostics.strictNullCheck": true,
+  "type.castNumberToInteger": true
 }
