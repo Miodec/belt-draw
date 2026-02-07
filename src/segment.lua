@@ -35,7 +35,6 @@ function Segment.new(from, first_node_direction, player, self_id, belt_tier, las
   self.midpoint = { x = from.x, y = from.y }
   self.orientation = nil
   self.self_id = self_id
-  self.max_segment_id = self_id
   self.nodes = {
     {
       x = from.x,
@@ -196,14 +195,6 @@ function Segment:destroy()
   self:clear_visualization()
 end
 
----@param max_segment_id number
-function Segment:update_max_segment_id(max_segment_id)
-  self.max_segment_id = max_segment_id
-  if self.self_id == max_segment_id - 1 then
-    self:visualize()
-  end
-end
-
 function Segment:update_midpoint()
   self.midpoint = self.orientation == "vertical" and { x = self.from.x, y = self.to.y } or
       { x = self.to.x, y = self.from.y }
@@ -329,8 +320,7 @@ end
 ---@param divergence_index number?
 function Segment:visualize(divergence_index)
   divergence_index = divergence_index or 0
-  local more_exist = self.self_id < self.max_segment_id
-  local target_count = more_exist and (#self.nodes - 1) or #self.nodes
+  local target_count = #self.nodes
 
   -- Only update/create render objects from divergence point onwards
   for i = divergence_index + 1, target_count do
@@ -702,6 +692,14 @@ function Segment:find_underground(node_index)
     end
   end
   return entry_idx, exit_idx
+end
+
+function Segment:remove_last_node()
+  local last_node = self.nodes[#self.nodes]
+  if last_node and last_node.render and last_node.render.valid then
+    last_node.render.destroy()
+  end
+  table.remove(self.nodes)
 end
 
 return Segment

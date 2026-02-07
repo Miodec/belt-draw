@@ -4,6 +4,11 @@ local Segment = require("src.segment")
 ---@param pos Position
 ---@param player LuaPlayer
 function add_segment(pos, player)
+  if storage.current_segment then
+    -- current segment is nil for the first segment
+    storage.current_segment:remove_last_node()
+  end
+
   local segment = Segment.new(pos, storage.starting_direction, player, #storage.segments + 1, storage.current_tier,
     storage.current_segment)
   table.insert(storage.segments, segment)
