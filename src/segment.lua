@@ -87,10 +87,6 @@ end
 ---@return "replace"|"block"|"connect"
 function Segment:get_compatibility(entity, node)
   local type = entity.type == "entity-ghost" and entity.ghost_type or entity.type
-  if type ~= "transport-belt" and type ~= "underground-belt" and type ~= "splitter" then
-    return "block"
-  end
-
   local same_dir = entity.direction == node.direction
   local opposite_dir = entity.direction == (node.direction + 8) % 16
   local perpendicular = (entity.direction + 4) % 16 == node.direction or (entity.direction + 12) % 16 == node
@@ -596,7 +592,13 @@ function Segment:plan_belts(skip)
       node.belt_type = "blocked"
     end
 
-    if entity then
+    local type = entity and (entity.type == "entity-ghost" and entity.ghost_type or entity.type)
+    local is_belt = false
+    if type == "transport-belt" or type == "underground-belt" or type == "splitter" then
+      is_belt = true
+    end
+
+    if entity and is_belt then
       local compat = self:get_compatibility(entity, node)
       if compat == "replace" then
         node.belt_type = "above"
