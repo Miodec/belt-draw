@@ -1,4 +1,8 @@
 ---------------------------------------------------------------------------------------------------
+Version: 2.1.7
+  Changes:
+    - Make visualisations remain on screen for 1 minute to prevent orphaned render objects remaining in the save forever.
+---------------------------------------------------------------------------------------------------
 Version: 2.1.6
   Bugfixes:
     - Fix a crash when anchoring twice in the same place
