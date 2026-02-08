@@ -1,4 +1,8 @@
 ---------------------------------------------------------------------------------------------------
+Version: 2.1.6
+  Bugfixes:
+    - Fix a crash when anchoring twice in the same place
+---------------------------------------------------------------------------------------------------
 Version: 2.1.5
   Features:
     - Place an underground belt when dragging past a connecting entity (splitter, underground). You can still connect to the entity by stopping the drag before or at the entity.
