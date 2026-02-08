@@ -261,6 +261,7 @@ function Segment:render_anchor(node)
     y_scale = scale,
     target = { x = node.x, y = node.y },
     surface = self.player.surface,
+    time_to_live = 60 * 60 -- 1 minute should be plenty, protects against orphaned render objects if something goes wrong
   }
   node.render = rendering.draw_sprite(sprite)
 end
@@ -299,6 +300,7 @@ function Segment:render_node(node)
     surface = self.player.surface,
     ---@type number
     orientation = node.direction * 0.0625 - 0.25,
+    time_to_live = 60 * 60 -- 1 minute should be plenty, protects against orphaned render objects if something goes wrong
   }
   node.render = rendering.draw_sprite(sprite)
 end

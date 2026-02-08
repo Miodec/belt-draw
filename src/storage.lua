@@ -24,7 +24,7 @@ script.on_configuration_changed(function()
   storage.starting_direction = storage.starting_direction or nil
   storage.dragging = storage.dragging or false
   storage.player_reach = storage.player_reach or nil
-  storage.segments = storage.segments or {}
-  storage.current_segment = storage.current_segment or nil
+  storage.segments = {}
+  storage.current_segment = nil
   storage.current_tier = storage.current_tier or "normal"
 end)
