@@ -1,4 +1,8 @@
 ---------------------------------------------------------------------------------------------------
+Version: 2.1.8
+  Bugfixes:
+    - Make sure Belt Draw controls don't interfere with other keybinds
+---------------------------------------------------------------------------------------------------
 Version: 2.1.7
   Changes:
     - Make visualisations remain on screen for 1 minute to prevent orphaned render objects remaining in the save forever.
