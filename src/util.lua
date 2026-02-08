@@ -19,7 +19,7 @@ end
 ---@param setTool boolean
 function cleanup(player, setTool)
   for _, segment in pairs(storage.segments) do
-    segment:destroy()
+    if segment.destroy then segment:destroy() end
   end
   storage.segments = {}
   storage.current_segment = nil
