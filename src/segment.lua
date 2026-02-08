@@ -624,11 +624,15 @@ function Segment:plan_belts(skip)
       end
     end
 
-    -- if this node is above, previous is above_connect, and one before this is above
-    -- set previous node to blocked
-    if i <= #self.nodes - 2 and node.belt_type == "above" and self.nodes[i + 1].belt_type == "above_connect" and self.nodes[i + 2].belt_type == "above" then
-      self.nodes[i + 1].belt_type = "blocked"
-      self:update_render(self.nodes[i + 1])
+    -- if this node is above, next is above_connect, and the one after is above
+    -- set next node to blocked
+    local next_node = self.nodes[i + 1]
+    local next_next_node = self.nodes[i + 2]
+    if node.belt_type == "above" and
+        next_node and next_node.belt_type == "above_connect" and
+        next_next_node and next_next_node.belt_type == "above" then
+      next_node.belt_type = "blocked"
+      self:update_render(next_node)
     end
   end
 
