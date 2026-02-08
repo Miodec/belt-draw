@@ -91,6 +91,9 @@ function Segment:get_compatibility(entity, node)
   local opposite_dir = entity.direction == (node.direction + 8) % 16
   local perpendicular = (entity.direction + 4) % 16 == node.direction or (entity.direction + 12) % 16 == node
       .direction
+  local belt_neighbours = entity.belt_neighbours or {}
+  local belt_neighbours_outputs = belt_neighbours.outputs or {}
+  local belt_neighbours_inputs = belt_neighbours.inputs or {}
 
   if type == "splitter" then
     if same_dir then
@@ -117,13 +120,13 @@ function Segment:get_compatibility(entity, node)
     end
 
     if (entity.belt_shape == "right" or entity.belt_shape == "left") and
-        entity.belt_neighbours.outputs[1] and
-        entity.belt_neighbours.inputs[1] and
+        belt_neighbours_outputs[1] and
+        belt_neighbours_inputs[1] and
         not same_dir
     then
       return "block"
     end
-    if (entity.belt_shape == "straight" and entity.belt_neighbours.outputs[1] and not same_dir and not opposite_dir) then
+    if (entity.belt_shape == "straight" and belt_neighbours_outputs[1] and not same_dir and not opposite_dir) then
       return "block"
     else
       return "replace"
