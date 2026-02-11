@@ -3,7 +3,11 @@ local tooltip = require("tooltip")
 local turbo_transport_belt = table.deepcopy(data.raw["transport-belt"]["turbo-transport-belt"])
 turbo_transport_belt.name = "belt-draw-dummy-turbo-transport-belt"
 turbo_transport_belt.created_smoke = { smoke_name = "belt-draw-empty-smoke" } --- @diagnostic disable-line
-
+turbo_transport_belt.collision_mask = {
+  layers = {
+    transport_belt = true
+  }
+}
 
 return {
   {
