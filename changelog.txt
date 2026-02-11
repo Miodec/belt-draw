@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------
+Version: 2.2.0
+  Features:
+    - Automatically place ghosts for landfill/ice platforms/concrete/foundation when holding shift
+    - Rework sounds played by the mod
+---------------------------------------------------------------------------------------------------
 Version: 2.1.8
   Bugfixes:
     - Make sure Belt Draw controls don't interfere with other keybinds
