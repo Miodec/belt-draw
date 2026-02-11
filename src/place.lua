@@ -7,6 +7,8 @@ function place(player, segments)
   local cannot_reach_shown = false
   local missing_item_shown = false
 
+  local at_least_one_placed = false
+
   for _, segment in pairs(segments) do
     for _, node in pairs(segment.nodes) do
       if storage.player_reach and player.character then
@@ -62,6 +64,7 @@ function place(player, segments)
           position = player.position,
         })
         inventory.remove({ name = name, count = 1 })
+        at_least_one_placed = true
       else
         entity.name = "entity-ghost"
         entity.ghost_name = name
@@ -78,15 +81,19 @@ function place(player, segments)
 
       if inventory and player.character then
         if count == 0 then
-          if not missing_item_shown then
+          if not missing_item_shown and at_least_one_placed then
             player.create_local_flying_text({
               text = { "belt-draw.missing-item" },
               position = { x = node.x, y = node.y },
             })
+            player.surface.play_sound({
+              path = "utility/cannot_build",
+              position = player.position,
+            })
             missing_item_shown = true
           end
         end
-        if not can_reach then
+        if count > 0 and not can_reach then
           if not cannot_reach_shown then
             player.create_local_flying_text({
               text = { "belt-draw.cannot-reach" },
