@@ -1,8 +1,14 @@
 local base_tool = require("base")
 
-local transport_belt = table.deepcopy(data.raw["transport-belt"]["transport-belt"])
-transport_belt.name = "belt-draw-dummy-transport-belt"
-transport_belt.created_smoke = { smoke_name = "belt-draw-empty-smoke" } --- @diagnostic disable-line
+local belt = table.deepcopy(data.raw["transport-belt"]["transport-belt"])
+belt.name = "belt-draw-dummy-transport-belt"
+belt.created_smoke = { smoke_name = "belt-draw-empty-smoke" } --- @diagnostic disable-line
+belt.collision_mask = {
+  layers = {
+    transport_belt = true
+  }
+}
+belt.next_upgrade = nil
 
 local tool = table.deepcopy(base_tool)
 tool.name = "belt-draw"
@@ -19,5 +25,5 @@ preview_tool.icon = "__belt-draw__/graphics/pencil.png"
 return {
   tool,
   preview_tool,
-  transport_belt
+  belt
 }
