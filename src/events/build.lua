@@ -21,6 +21,10 @@ script.on_event(defines.events.on_pre_build, function(event)
     add_segment(pos, player)
   else
     storage.current_segment:update_to(pos)
+    player.surface.play_sound({
+      path = "entity-build/entity-ghost",
+      position = player.position,
+    })
   end
 end)
 

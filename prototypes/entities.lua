@@ -13,6 +13,7 @@ return
       filename = "__core__/graphics/empty.png",
       size = 1
     },
-    created_smoke = { smoke_name = "belt-draw-empty-smoke" } --- @diagnostic disable-line
+    created_smoke = { smoke_name = "belt-draw-empty-smoke" }, --- @diagnostic disable-line
+    build_sound = { filename = "__core__/sound/silence-1sec.ogg" },
   }
 }

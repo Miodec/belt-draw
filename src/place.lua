@@ -57,6 +57,10 @@ function place(player, segments)
           entity.direction = (entity.direction + 8) % 16
         end
         player.surface.create_entity(entity)
+        player.surface.play_sound({
+          path = "entity-build/" .. name,
+          position = player.position,
+        })
         inventory.remove({ name = name, count = 1 })
       else
         entity.name = "entity-ghost"
@@ -65,6 +69,10 @@ function place(player, segments)
           entity.type = entity.belt_to_ground_type
           entity.belt_to_ground_type = nil
         end
+        player.surface.play_sound({
+          path = "entity-build/entity-ghost",
+          position = player.position,
+        })
         player.surface.create_entity(entity)
       end
 
