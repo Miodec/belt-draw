@@ -24,7 +24,7 @@ end
 ---@param area BoundingBox
 ---@param mode "normal"|"alt"
 local function on_release(player, area, mode)
-  place(player, storage.segments)
+  place(player, storage.segments, mode)
 
   cleanup(player, true)
 end
