@@ -1,4 +1,8 @@
 ---------------------------------------------------------------------------------------------------
+Version: 2.2.1
+  Bugfixes:
+    - Fix single belt segments not replacing already placed belts
+---------------------------------------------------------------------------------------------------
 Version: 2.2.0
   Features:
     - Automatically place ghosts for landfill/ice platforms/concrete/foundation when holding shift
