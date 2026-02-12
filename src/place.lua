@@ -160,11 +160,9 @@ function place_using_inventory(player, segments)
         force = player.force,
         player = player,
         raise_built = true,
+        fast_replace = true
       }
 
-      if #segment.nodes == 1 then
-        entity.fast_replace = true
-      end
 
       if node.belt_type == "down" then
         entity.belt_to_ground_type = "input"
