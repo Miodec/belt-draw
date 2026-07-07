@@ -6,7 +6,7 @@
   "configurations": [
     
     {
-      "type": "factoriomod",
+      "type": "factorio",
       "request": "launch",
       "name": "Factorio Mod Debug"
     },

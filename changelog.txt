@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------
+Version: 2.3.0
+  Changes:
+    - Update to Factorio 2.1
+    - Support undo when right click dragging with the belt draw tool
+---------------------------------------------------------------------------------------------------
 Version: 2.2.1
   Bugfixes:
     - Fix single belt segments not replacing already placed belts

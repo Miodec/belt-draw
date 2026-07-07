@@ -16,9 +16,16 @@ return {
     cursor_box_type = "not-allowed",
   },
   reverse_select = {
-    mode = settings.startup["belt-draw-swap-left-right-click"].value and "nothing" or "deconstruct",
+    mode = settings.startup["belt-draw-swap-left-right-click"].value and { "nothing" } or { "deconstruct", "any-entity" },
     border_color = { a = 0, r = settings.startup["belt-draw-swap-left-right-click"].value and 0 or 1 },
     cursor_box_type = "not-allowed",
+    entity_type_filters = {
+      "transport-belt",
+      "underground-belt",
+      "splitter"
+    },
+    -- ignore_cannot_select_entities = true,
+    ignore_cannot_select_tiles = true,
   },
   alt_reverse_select = {
     mode = "nothing",
