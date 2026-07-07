@@ -4,19 +4,20 @@ local function on_deconstruct(player, area)
   -- mark entities for deconstruction
   local entities = player.surface.find_entities_filtered({
     area = area,
-    type = { "transport-belt", "underground-belt", "splitter" },
+    type = { "transport-belt", "underground-belt", "splitter", "entity-ghost" },
   })
+  local num = 0
   for _, e in pairs(entities) do
-    e.order_deconstruction(player.force, player)
+    if e.type == "entity-ghost" then
+      if e.ghost_name ~= "transport-belt" and e.ghost_name ~= "underground-belt" and e.ghost_name ~= "splitter" then
+        goto continue
+      end
+    end
+    e.order_deconstruction(player.force, player, (num == 0) and 0 or 1)
+    num = num + 1
+    ::continue::
   end
 
-  local ghosts = player.surface.find_entities_filtered({
-    area = area,
-    name = "entity-ghost"
-  })
-  for _, g in pairs(ghosts) do
-    g.destroy()
-  end
   cleanup(player, true)
 end
 
