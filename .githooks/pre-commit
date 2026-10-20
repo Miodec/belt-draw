@@ -1,0 +1,3 @@
+#!/bin/bash
+# Type check the mod before every commit (about a second). Skip with git commit --no-verify
+exec "$(git rev-parse --show-toplevel)/tools/check.sh"

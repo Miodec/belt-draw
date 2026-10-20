@@ -1,0 +1,3 @@
+#!/bin/bash
+# Run the in-game tests before every push (about 15 seconds, opens a Factorio window). Skip with git push --no-verify
+exec "$(git rev-parse --show-toplevel)/tests/run.sh"

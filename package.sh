@@ -20,6 +20,11 @@ rm -rf "$PACKAGE_DIR/screenshots"
 rm -rf "$PACKAGE_DIR/design"
 rm -rf "$PACKAGE_DIR/.vscode"
 rm -f "$PACKAGE_DIR/package.sh"
+rm -rf "$PACKAGE_DIR/tests"
+rm -rf "$PACKAGE_DIR/tools"
+rm -rf "$PACKAGE_DIR/docs"
+rm -rf "$PACKAGE_DIR/.githooks"
+rm -f "$PACKAGE_DIR/CLAUDE.md" "$PACKAGE_DIR/CODING_STANDARDS.md" "$PACKAGE_DIR/GLOSSARY.md"
 find "$PACKAGE_DIR" -type d -name ".claude" -prune -exec rm -rf {} +
 
 # Create zip in user's home directory

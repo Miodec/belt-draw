@@ -33,3 +33,7 @@ data:extend({
     associated_control_input = "belt-draw-shortcut"
   },
 })
+
+if settings.startup["belt-draw-run-tests"].value then
+  data.raw["utility-constants"]["default"].main_menu_simulations = require("tests.simulations")
+end

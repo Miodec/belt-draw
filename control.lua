@@ -10,3 +10,7 @@ require("src/events/select")
 require("src/events/tier")
 require("src/events/flip")
 require("src/events/build")
+
+if settings.startup["belt-draw-run-tests"].value then
+  require("tests/control")
+end

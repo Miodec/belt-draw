@@ -22,8 +22,11 @@ script.on_event(defines.events.on_player_cursor_stack_changed, function(event)
       -- auto-update tier when picking up an entity or ghost
       local tier = get_belt_tier_for_entity_name(cursor_entity_or_ghost_name)
       if tier and state.current_tier ~= tier then
+        -- the checker reads the nested locale table as a LuaGuiElement
+        ---@diagnostic disable-next-line: missing-fields
+        local text = { "belt-draw.tier-updated", { "belt-draw.tier-" .. tier } } ---@type LocalisedString
         player.create_local_flying_text {
-          text = { "belt-draw.tier-updated", { "belt-draw.tier-" .. tier } },
+          text = text,
           position = player.position,
           create_at_cursor = true
         }

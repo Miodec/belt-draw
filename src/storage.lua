@@ -57,22 +57,27 @@ end)
 
 script.on_configuration_changed(function()
   -- before multiplayer support everything was shared, keep the tier but drop the old fields
-  local old_tier = storage.current_tier
+  -- (raw access, these fields aren't part of StorageData anymore)
+  ---@type BeltTier?
+  local old_tier = rawget(storage, "current_tier")
   for _, key in pairs({ "starting_direction", "dragging", "swapping_tool", "restarting_selection", "player_reach",
     "segments", "current_segment", "current_tier", "selection_mode", "draw_alt", "super_forced", "hide_preview" }) do
-    storage[key] = nil
+    rawset(storage, key, nil)
   end
 
   -- a drawing in progress can't survive a mod update, start everyone fresh
+  ---@type table<integer, PlayerState>
   local old_players = storage.players or {}
   storage.players = {}
   for index, state in pairs(old_players) do
     storage.players[index] = new_player_state(state.current_tier)
   end
   if old_tier then
-    for index in pairs(game.players) do
-      if not storage.players[index] then
-        storage.players[index] = new_player_state(old_tier)
+    -- game.players is a custom table, the checker can't type what pairs gives back
+    ---@diagnostic disable-next-line: no-unknown
+    for _, player in pairs(game.players) do
+      if not storage.players[player.index] then
+        storage.players[player.index] = new_player_state(old_tier)
       end
     end
   end

@@ -1,0 +1,68 @@
+-- Undo and redo: one undo reverts a whole drawing, rotations included
+
+local h = require("tests.helpers")
+local east, west = defines.direction.east, defines.direction.west
+
+---@type TestCase[]
+return {
+  {
+    name = "one undo reverts a blueprint drawing (shift), redo puts it back",
+    setup = function(ctx)
+      h.place(ctx, "transport-belt", { -1.5, 0.5 }, west)
+      h.place(ctx, "fast-transport-belt", { -0.5, 0.5 }, west)
+      h.hold_tool(ctx)
+    end,
+    steps = h.steps(
+      h.drag(h.controls.shift_draw, { -2.5, 0.5 }, { 1.5, 0.5 }),
+      h.run(function(ctx)
+        -- the drawing itself, so a failure below is about undo and not the drawing
+        h.expect(ctx, { -1.5, 0.5 }, "transport-belt", east)
+        h.check(h.expect(ctx, { -0.5, 0.5 }, "fast-transport-belt", east).to_be_upgraded(), "fast belt isn't marked for upgrade")
+      end),
+      h.press_and_release("undo"),
+      h.run(function(ctx)
+        h.expect(ctx, { -1.5, 0.5 }, "transport-belt", west)
+        local fast = h.expect(ctx, { -0.5, 0.5 }, "fast-transport-belt", west)
+        h.check(not fast.to_be_upgraded(), "fast belt is still marked for upgrade")
+        for _, position in ipairs({ { -2.5, 0.5 }, { 0.5, 0.5 }, { 1.5, 0.5 } }) do
+          h.expect_none(ctx, position, "transport-belt", true)
+        end
+      end),
+      h.press_and_release("redo"),
+      h.run(function(ctx)
+        h.expect(ctx, { -1.5, 0.5 }, "transport-belt", east)
+        h.check(h.expect(ctx, { -0.5, 0.5 }, "fast-transport-belt", east).to_be_upgraded(),
+          "fast belt isn't marked for upgrade after redo")
+        for _, position in ipairs({ { -2.5, 0.5 }, { 0.5, 0.5 }, { 1.5, 0.5 } }) do
+          h.expect(ctx, position, "transport-belt", east, true)
+        end
+      end)
+    ),
+  },
+  {
+    name = "one undo reverts an inventory drawing",
+    setup = function(ctx)
+      h.place(ctx, "transport-belt", { -0.5, 0.5 }, west)
+      h.give(ctx, "transport-belt", 20)
+      h.hold_tool(ctx)
+    end,
+    steps = h.steps(
+      h.drag(h.controls.draw, { -2.5, 0.5 }, { 1.5, 0.5 }),
+      h.run(function(ctx)
+        for _, position in ipairs(h.row(-2.5, 1.5)) do
+          h.expect(ctx, position, "transport-belt", east)
+        end
+      end),
+      h.press_and_release("undo"),
+      h.run(function(ctx)
+        -- undoing a build marks it for deconstruction, like the game does for belts placed by hand
+        for _, position in ipairs({ { -2.5, 0.5 }, { -1.5, 0.5 }, { 0.5, 0.5 }, { 1.5, 0.5 } }) do
+          local belt = h.expect(ctx, position, "transport-belt")
+          h.check(belt.to_be_deconstructed(), "belt at " .. position[1] .. " isn't marked for deconstruction")
+        end
+        local rotated = h.expect(ctx, { -0.5, 0.5 }, "transport-belt", west)
+        h.check(not rotated.to_be_deconstructed(), "the rotated belt is marked for deconstruction")
+      end)
+    ),
+  },
+}
