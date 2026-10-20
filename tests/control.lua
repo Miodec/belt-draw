@@ -33,26 +33,80 @@ local case_tick = 0
 local passed = 0
 local failed = 0
 
-local results_shown = 0
+-- the result lines on the map, newest first
+---@type LuaRenderObject[]
+local results = {}
+---@type LuaRenderObject?
+local summary = nil
+---@type LuaRenderObject?
+local running = nil
 
 local function report(line)
   log(PREFIX .. line)
   game.print(line)
 end
 
---- Results also go on the map, a line per case above the test area
+-- results go on the map right of the main menu, which covers the middle of the screen (see the camera in run)
+local RESULTS_X = 42
+local RESULTS_TOP = -26
+local LINE_SCALE = 2.5
+local LINE_HEIGHT = 1.4
+-- the running line and the results start under the summary
+local FIRST_LINE = RESULTS_TOP + 3
+
+--- The passed and failed counts at the top of the results, kept up to date as cases finish
+local function update_summary()
+  if not ctx then return end
+  local text = passed .. " passed, " .. failed .. " failed"
+  if case_index <= #cases then
+    text = text .. " (" .. (passed + failed) .. "/" .. #cases .. ")"
+  end
+  local color = failed == 0 and { 1, 1, 1 } or { 1, 0.3, 0.3 }
+  if summary and summary.valid then
+    summary.text = text
+    summary.color = color
+    return
+  end
+  summary = rendering.draw_text({
+    text = text,
+    surface = ctx.surface,
+    target = { RESULTS_X, RESULTS_TOP },
+    color = color,
+    scale = 5,
+  })
+end
+
+--- The case being run, above the results. Nil removes it
+---@param name string?
+local function show_running(name)
+  if running and running.valid then running.destroy() end
+  running = nil
+  if not ctx or not name then return end
+  running = rendering.draw_text({
+    text = "RUNNING " .. name,
+    surface = ctx.surface,
+    target = { RESULTS_X, FIRST_LINE },
+    color = { 1, 0.8, 0.2 },
+    scale = LINE_SCALE,
+  })
+end
+
+--- A line per case under the running line, the newest on top pushes the others down
 ---@param text string
 ---@param color Color
 local function show_result(text, color)
   if not ctx then return end
-  rendering.draw_text({
+  for i, line in ipairs(results) do
+    line.target = { RESULTS_X, FIRST_LINE + (i + 1) * LINE_HEIGHT }
+  end
+  table.insert(results, 1, rendering.draw_text({
     text = text,
     surface = ctx.surface,
-    target = { -12, -7 + results_shown * 0.8 },
+    target = { RESULTS_X, FIRST_LINE + LINE_HEIGHT },
     color = color,
-    scale = 1.5,
-  })
-  results_shown = results_shown + 1
+    scale = LINE_SCALE,
+  }))
+  update_summary()
 end
 
 --- What the map and the mod looked like when a case failed, only goes to the log
@@ -138,10 +192,12 @@ local function start_case()
       cleanup(ctx.player, false)
     end
     report("DONE " .. passed .. " passed, " .. failed .. " failed")
-    show_result(passed .. " passed, " .. failed .. " failed", failed == 0 and { 1, 1, 1 } or { 1, 0.3, 0.3 })
+    show_running(nil)
+    update_summary()
     return
   end
   reset()
+  show_running(case.name)
   ctx.step_tick = 0
   if case.setup then
     local ok, err = pcall(case.setup, ctx)
@@ -237,10 +293,13 @@ remote.add_interface("belt-draw-tests", {
   run = function()
     local player = game.simulation.create_test_player({ name = "tester" })
     game.simulation.camera_player = player
-    game.simulation.camera_position = { 0, 0 }
-    game.simulation.camera_zoom = 1
+    -- the main menu covers the middle of the screen and can't be hidden, so the camera looks to the right of
+    -- the test area (x -15 to 15), which leaves it on the left of the menu
+    game.simulation.camera_position = { 28, 2 }
+    game.simulation.camera_zoom = 0.5
     ctx = { player = player, surface = player.surface, step_tick = 0, data = {} }
     report("START " .. #cases .. " cases")
+    update_summary()
     start_case()
   end,
 })

@@ -28,7 +28,9 @@ pkill -f -- "--mod-directory $WORK/mods" 2> /dev/null && sleep 1
 mkdir -p "$WORK/config" "$WORK/mods"
 rm -f "$WORK/factorio-current.log" "$WORK/stdout.log"
 
+# without the version line Factorio says the config is invalid and asks to reset it
 cat > "$WORK/config/config.ini" <<EOF
+; version=13
 [path]
 read-data=__PATH__system-read-data__
 write-data=$WORK
