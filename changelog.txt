@@ -17,6 +17,7 @@ Version: 3.0.0
     - Fix deconstructing skipping ghosts of fast, express and turbo belts.
     - Fix undergrounds being planned under fish, biters, dropped items and other things that move out of the way.
     - Fix a drawing in progress being continued after loading a save made mid-drag.
+    - Make sound play for the player instead of the surface
 ---------------------------------------------------------------------------------------------------
 Version: 2.3.0
   Changes:
