@@ -162,6 +162,7 @@ end
 local function on_release(player, entities, mode)
   local action = get_action(mode)
   if action == "normal" or action == "alt" or action == "super_forced" then
+    ---@cast action "normal"|"alt"|"super_forced"
     place(player, get_state(player).segments, action)
     cleanup(player, true)
   elseif action == "deconstruct" then
@@ -282,9 +283,22 @@ script.on_event(defines.events.on_player_reverse_selected_area, release_handler(
 script.on_event(defines.events.on_player_alt_reverse_selected_area, release_handler("alt_reverse"))
 script.on_event(defines.events.on_player_super_forced_selected_area, release_handler("super_forced"))
 
--- entering/leaving remote view switches between normal and alt sprites
+-- walking around moves nodes in and out of reach, out of reach nodes are planned and built like alt mode
+script.on_event(defines.events.on_player_changed_position, function(event)
+  local state = storage.players and storage.players[event.player_index]
+  if not state or #state.segments == 0 then return end
+  for _, segment in pairs(state.segments) do
+    if segment:refresh_reach() then
+      segment:replan()
+      segment:apply_alt_sprites()
+    end
+  end
+end)
+
+-- entering/leaving remote view switches between building from the inventory and with a blueprint, like alt mode
 script.on_event(defines.events.on_player_controller_changed, function(event)
   for _, segment in pairs(get_state(event.player_index).segments) do
+    segment:replan()
     segment:apply_alt_sprites()
   end
 end)

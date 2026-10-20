@@ -1,5 +1,5 @@
-local findLDivergencePoint = require("divergence")
-local tiers = require("tiers")
+local findLDivergencePoint = require("src.divergence")
+local tiers = require("src.tiers")
 
 ---@alias BeltType "above"|"down"|"up"|"under"|"under_entity"|"blocked"|"above_connect"|"above_deconstruct"
 ---@alias Position {x: number, y: number}
@@ -21,6 +21,7 @@ local tiers = require("tiers")
 ---@field belt_tier BeltTier
 ---@field last_segment Segment?
 ---@field earlier_tiles table<number, table<number, true>>? tiles used by the segments before this one, keyed by x then y
+---@field reach {x: number, y: number, distance: number}? where the player stood and how far they could build at the last update
 ---@field shown_visibility string? which visibility the render objects were last set to, see apply_visibility
 ---@field highlights table<string|integer, LuaEntity>? highlight boxes around entities super forced will deconstruct, keyed by entity
 local Segment = {}
@@ -56,6 +57,7 @@ function Segment.new(from, first_node_direction, player, self_id, belt_tier, las
   self.orientation_override = nil
   self.belt_tier = belt_tier
   self.last_segment = last_segment
+  self:refresh_reach()
   self:check_orientation_override()
   self:plan_belts()
   self:visualize()
@@ -88,6 +90,7 @@ function Segment:node_info(node, state)
   end
   -- the first node has no direction when the build key press wasn't seen
   local direction = node.direction or -1
+  ---@type NodeInfo?
   local info = by_direction[direction]
   -- the entity may have been removed since, look again
   if info and info.entity and not info.entity.valid then
@@ -146,6 +149,7 @@ function Segment:tile_blocks(node)
     if not tile then
       info.tile_blocks = true
     else
+      ---@type table<string, true>
       local belt_layers = prototypes.entity["transport-belt"].collision_mask.layers
       for layer in pairs(tile.prototype.collision_mask.layers) do
         if belt_layers[layer] then
@@ -307,6 +311,8 @@ function Segment:update_to(pos)
     position = self.player.position,
   })
 
+  local moved = self:refresh_reach()
+
   -- Save old 'to' position and orientation before updating
   local prev_to = { x = self.to.x, y = self.to.y }
   local prev_orientation = self.orientation
@@ -341,6 +347,11 @@ function Segment:update_to(pos)
   self:update_nodes(divergenceIndex)
   self:plan_belts(divergenceIndex)
   self:visualize(divergenceIndex)
+  if moved then
+    -- visualize only touched the changed part, the rest may have moved in or out of reach (which changes the plan too)
+    self:visualize()
+    self:apply_alt_sprites()
+  end
 end
 
 function Segment:clear_visualization()
@@ -376,6 +387,7 @@ function Segment:update_highlights()
         -- LuaEntity wrappers differ per lookup, so key by something stable
         local key = entity.unit_number or (entity.name .. "@" .. entity.position.x .. "," .. entity.position.y)
         if not new[key] then
+          ---@type LuaEntity?
           local highlight = old[key]
           if highlight and highlight.valid then
             old[key] = nil
@@ -422,6 +434,30 @@ function Segment:uses_alt()
   return state.draw_alt or state.super_forced or self.player.controller_type == defines.controllers.remote
 end
 
+--- Remember where the player is, nodes out of their reach get built as ghosts
+---@return boolean changed whether the player moved or their reach changed since the last call
+function Segment:refresh_reach()
+  local position = self.player.position
+  local distance = self.player.build_distance
+  local old = self.reach
+  if old and old.x == position.x and old.y == position.y and old.distance == distance then
+    return false
+  end
+  self.reach = { x = position.x, y = position.y, distance = distance }
+  return true
+end
+
+--- Whether a node gets the alt sprite. Out of reach nodes are built as ghosts, so they look like it
+---@param node Node
+---@param use_alt boolean from Segment:uses_alt
+---@return boolean
+function Segment:node_uses_alt(node, use_alt)
+  if use_alt then return true end
+  local reach = self.reach
+  if not reach then return false end
+  return not can_reach(reach, reach.distance, node.x, node.y)
+end
+
 ---@param sprite_name string
 ---@param use_alt boolean from Segment:uses_alt, looked up once per update instead of per node
 ---@return string
@@ -448,14 +484,14 @@ function Segment:apply_alt_sprites()
   for _, node in pairs(self.nodes) do
     if node.render and node.render.valid then
       local base_name = string.gsub(node.drawn and node.drawn.sprite or node.render.sprite, "%-alt$", "")
-      set_sprite(node, with_alt(base_name, use_alt))
+      set_sprite(node, with_alt(base_name, self:node_uses_alt(node, use_alt)))
     end
   end
 end
 
 ---@param node Node
 function Segment:render_anchor(node)
-  local sprite_name = with_alt("belt-draw-anchor", self:uses_alt())
+  local sprite_name = with_alt("belt-draw-anchor", self:node_uses_alt(node, self:uses_alt()))
   local sprite = {
     sprite = sprite_name,
     x_scale = scale,
@@ -499,7 +535,8 @@ function Segment:render_node(node, use_alt, visible)
   if use_alt == nil then use_alt = self:uses_alt() end
   if visible == nil then visible = self:shows_preview() end
 
-  sprite_name = with_alt(sprite_name, use_alt)
+  sprite_name = with_alt(sprite_name, self:node_uses_alt(node, use_alt))
+  ---@type number
   local orientation = node.direction * 0.0625 - 0.25
   ---@type Position
   local target = { x = node.x, y = node.y }
@@ -540,12 +577,13 @@ function Segment:update_render(node, use_alt, visible)
   end
 
   node.drawn = node.drawn or {}
+  ---@type number
   local orientation = node.direction * 0.0625 - 0.25
   if node.drawn.orientation ~= orientation then
     node.render.orientation = orientation
     node.drawn.orientation = orientation
   end
-  set_sprite(node, with_alt(get_sprite_name_for_belt_type(node.belt_type), use_alt))
+  set_sprite(node, with_alt(get_sprite_name_for_belt_type(node.belt_type), self:node_uses_alt(node, use_alt)))
 end
 
 ---@param divergence_index number?
@@ -871,8 +909,9 @@ function Segment:plan_belts(skip)
       if not entity and not self:tile_blocks(node) then
         -- only blocked by ignored entities (fish, biters...), build on top
         node.belt_type = "above"
-      elseif (state.draw_alt or state.super_forced) and not entity and self:can_cover_tile(node) then
-        -- alt and super forced build with a blueprint, which covers water etc. with landfill/foundation automatically
+      elseif self:node_uses_alt(node, use_alt) and not entity and self:can_cover_tile(node) then
+        -- alt, super forced, remote view and out of reach nodes build with a blueprint,
+        -- which covers water etc. with landfill/foundation automatically
         node.belt_type = "above"
       end
     end
@@ -991,10 +1030,14 @@ end
 
 --- Plan and redraw every node, e.g. after switching in/out of super forced mode
 function Segment:replan()
+  self:refresh_reach()
   self:plan_belts(0)
   self:visualize()
 end
 
+---@param node_index integer
+---@return integer? entry_idx
+---@return integer? exit_idx
 function Segment:find_underground(node_index)
   local i = node_index
   local entry_idx = nil
