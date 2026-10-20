@@ -1,4 +1,16 @@
 ---------------------------------------------------------------------------------------------------
+Version: 3.1.0
+  Features:
+    - Drawing over a belt of the same tier rotates it to the drawn direction instead of rebuilding it, keeping what's on it.
+    - Blueprint drawing (shift, map view, and out of reach with the setting below on) rotates belts of other tiers and marks them for upgrade, and swaps ghosts of other tiers.
+    - One undo reverts a whole drawing, rotations included, and redo puts it back.
+    - New setting "Build ghosts out of reach", off by default. Off, parts of a drawing out of reach are left out and their preview is faded. On, they are built as ghosts with the blue preview and get landfill over water like blueprint drawing. Either way the preview follows you as you walk.
+  Bugfixes:
+    - Fix fast and express undergrounds being planned one tile further than they can reach, which left them unconnected.
+    - Fix a crash when shift drawing started on a belt.
+    - Fix drawing over an identical belt losing the item or turning belts into ghosts.
+    - Fix ghosts taking the real belt underneath into the inventory, even out of reach or in map view.
+---------------------------------------------------------------------------------------------------
 Version: 3.0.0
   Major Features:
     - Major rework with the new selection events in Factorio 2.1.22
