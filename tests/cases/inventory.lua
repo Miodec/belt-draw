@@ -145,4 +145,25 @@ return {
       end)
     ),
   },
+  {
+    name = "inventory drawing goes under water instead of placing landfill",
+    setup = function(ctx)
+      h.water(ctx, 0, 1)
+      h.give(ctx, "transport-belt", 20)
+      h.give(ctx, "underground-belt", 10)
+      h.hold_tool(ctx)
+    end,
+    steps = h.steps(
+      h.drag(h.controls.draw, { -3.5, 0.5 }, { 4.5, 0.5 }),
+      h.run(function(ctx)
+        h.check_equal(0, #ctx.surface.find_entities_filtered({ name = "tile-ghost" }), "landfill ghosts")
+        h.check_equal(0, #ctx.surface.find_entities_filtered({ name = "entity-ghost" }), "ghosts")
+        h.check_equal("input", h.expect(ctx, { -0.5, 0.5 }, "underground-belt", east).belt_to_ground_type, "underground before the water")
+        h.check_equal("output", h.expect(ctx, { 2.5, 0.5 }, "underground-belt", east).belt_to_ground_type, "underground after the water")
+        for _, position in ipairs({ { 0.5, 0.5 }, { 1.5, 0.5 } }) do
+          h.expect_none(ctx, position, "transport-belt")
+        end
+      end)
+    ),
+  },
 }

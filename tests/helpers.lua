@@ -310,6 +310,20 @@ function helpers.expect_preview_exactly(positions)
   end
 end
 
+--- Water along y = 0.5 from from_x to to_x (tile corners), with landfill as the cover tile
+---@param ctx TestContext
+---@param from_x integer
+---@param to_x integer
+function helpers.water(ctx, from_x, to_x)
+  -- the cover tile is a per surface and force setting, a fresh map has none
+  local landfill = ctx.player.force.technologies["landfill"] ---@type LuaTechnology
+  landfill.researched = true
+  ctx.surface.set_default_cover_tile(ctx.player.force, "water", "landfill")
+  local tiles = {}
+  for x = from_x, to_x do table.insert(tiles, { name = "water", position = { x, 0 } }) end
+  ctx.surface.set_tiles(tiles)
+end
+
 ---@param ctx TestContext
 ---@param item string
 ---@param count integer

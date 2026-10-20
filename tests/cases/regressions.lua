@@ -100,13 +100,7 @@ return {
     -- like reachable ones, so water got an underground
     name = "out of reach water gets landfill, not an underground",
     setup = function(ctx)
-      -- the cover tile is a per surface and force setting, a fresh map has none
-      local landfill = ctx.player.force.technologies["landfill"] ---@type LuaTechnology
-      landfill.researched = true
-      ctx.surface.set_default_cover_tile(ctx.player.force, "water", "landfill")
-      local tiles = {}
-      for x = 11, 13 do table.insert(tiles, { name = "water", position = { x, 0 } }) end
-      ctx.surface.set_tiles(tiles)
+      h.water(ctx, 11, 13)
       ctx.player.teleport({ 0, 3.5 })
       h.give(ctx, "transport-belt", 20)
       h.give(ctx, "underground-belt", 10)

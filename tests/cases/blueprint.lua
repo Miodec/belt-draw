@@ -122,4 +122,24 @@ return {
       h.run(check_mixed_belts)
     ),
   },
+  {
+    name = "blueprint drawing (shift) places landfill under belts over water",
+    setup = function(ctx)
+      h.water(ctx, 0, 1)
+      h.hold_tool(ctx)
+    end,
+    steps = h.steps(
+      h.drag(h.controls.shift_draw, { -3.5, 0.5 }, { 4.5, 0.5 }),
+      h.run(function(ctx)
+        h.check_equal(0, #ctx.surface.find_entities_filtered({ name = "entity-ghost", ghost_name = "underground-belt" }), "underground ghosts")
+        for _, position in ipairs(h.row(-3.5, 4.5)) do
+          h.expect(ctx, position, "transport-belt", east, true)
+        end
+        for _, position in ipairs({ { 0.5, 0.5 }, { 1.5, 0.5 } }) do
+          local tile = ctx.surface.find_entities_filtered({ name = "tile-ghost", position = position })[1]
+          h.check(tile ~= nil and tile.ghost_name == "landfill", "no landfill ghost at " .. position[1])
+        end
+      end)
+    ),
+  },
 }
