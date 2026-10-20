@@ -103,4 +103,78 @@ return {
       end)
     ),
   },
+  {
+    name = "one undo reverts an inventory drawing back over the previous one",
+    setup = function(ctx)
+      h.give(ctx, "transport-belt", 20)
+      h.hold_tool(ctx)
+    end,
+    steps = h.steps(
+      h.drag(h.controls.draw, { 1.5, 0.5 }, { -1.5, 0.5 }),
+      h.drag(h.controls.draw, { -3.5, 0.5 }, { 3.5, 0.5 }),
+      h.run(function(ctx)
+        for _, position in ipairs(h.row(-3.5, 3.5)) do
+          h.expect(ctx, position, "transport-belt", east)
+        end
+      end),
+      h.press_and_release("undo"),
+      h.run(function(ctx)
+        for _, position in ipairs(h.row(-3.5, 3.5)) do
+          local belt = h.expect(ctx, position, "transport-belt")
+          local previous = position[1] > -2 and position[1] < 2
+          h.check_equal(not previous, belt.to_be_deconstructed(), "belt at " .. position[1] .. " marked for deconstruction")
+          if previous then
+            h.check_equal(west, belt.direction, "direction of the belt at " .. position[1])
+          end
+        end
+      end)
+    ),
+  },
+  {
+    name = "one undo reverts a blueprint drawing (shift) back over the previous one",
+    setup = function(ctx)
+      h.hold_tool(ctx)
+    end,
+    steps = h.steps(
+      h.drag(h.controls.shift_draw, { 1.5, 0.5 }, { -1.5, 0.5 }),
+      h.drag(h.controls.shift_draw, { -3.5, 0.5 }, { 3.5, 0.5 }),
+      h.run(function(ctx)
+        for _, position in ipairs(h.row(-3.5, 3.5)) do
+          h.expect(ctx, position, "transport-belt", east, true)
+        end
+      end),
+      h.press_and_release("undo"),
+      h.run(function(ctx)
+        for _, position in ipairs(h.row(-3.5, 3.5)) do
+          if position[1] > -2 and position[1] < 2 then
+            h.expect(ctx, position, "transport-belt", west, true)
+          else
+            h.expect_none(ctx, position, "transport-belt", true)
+          end
+        end
+      end)
+    ),
+  },
+  {
+    name = "one undo reverts a longer drawing back over a fast belt drawing",
+    setup = function(ctx)
+      h.give(ctx, "fast-transport-belt", 20)
+      h.hold_tool(ctx, "belt-draw-fast-preview")
+    end,
+    steps = h.steps(
+      h.drag(h.controls.draw, { -1.5, 0.5 }, { 0.5, 0.5 }),
+      h.drag(h.controls.draw, { 1.5, 0.5 }, { -2.5, 0.5 }),
+      h.press_and_release("undo"),
+      h.run(function(ctx)
+        for _, position in ipairs(h.row(-2.5, 1.5)) do
+          local belt = h.expect(ctx, position, "fast-transport-belt")
+          local previous = position[1] > -2 and position[1] < 1
+          h.check_equal(not previous, belt.to_be_deconstructed(), "belt at " .. position[1] .. " marked for deconstruction")
+          if previous then
+            h.check_equal(east, belt.direction, "direction of the belt at " .. position[1])
+          end
+        end
+      end)
+    ),
+  },
 }
