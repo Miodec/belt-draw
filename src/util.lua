@@ -4,29 +4,40 @@ local Segment = require("src.segment")
 ---@param pos Position
 ---@param player LuaPlayer
 function add_segment(pos, player)
-  if storage.current_segment then
+  local state = get_state(player)
+  if state.current_segment then
     -- current segment is nil for the first segment
-    storage.current_segment:remove_last_node()
+    state.current_segment:remove_last_node()
   end
 
-  local segment = Segment.new(pos, storage.starting_direction, player, #storage.segments + 1, storage.current_tier,
-    storage.current_segment)
-  table.insert(storage.segments, segment)
-  storage.current_segment = segment
+  local segment = Segment.new(pos, state.starting_direction, player, #state.segments + 1, state.current_tier,
+    state.current_segment)
+  table.insert(state.segments, segment)
+  state.current_segment = segment
 end
 
 ---@param player LuaPlayer
 ---@param setTool boolean
 function cleanup(player, setTool)
-  for _, segment in pairs(storage.segments) do
+  local state = get_state(player)
+  for _, segment in pairs(state.segments) do
     if segment.destroy then segment:destroy() end
   end
-  storage.segments = {}
-  storage.current_segment = nil
-  storage.dragging = false
+  state.segments = {}
+  state.current_segment = nil
+  state.node_cache = nil
+  state.dragging = false
   if setTool == nil or setTool == true then
     set_tool(player)
   end
+end
+
+---@param position MapPosition
+---@return {x: number, y: number}
+function to_tile_center(position)
+  local x = position.x or position[1]
+  local y = position.y or position[2]
+  return { x = math.floor(x) + 0.5, y = math.floor(y) + 0.5 }
 end
 
 ---@param tool_name string
@@ -50,6 +61,20 @@ function is_holding_bd_tool(player)
   return true
 end
 
+---@param player LuaPlayer
+---@return boolean
+function is_holding_bd_preview_tool(player)
+  local cursor_stack = player.cursor_stack
+  if cursor_stack == nil then return false end
+  if not cursor_stack.valid_for_read then return false end
+  for _, tier in pairs(tiers) do
+    if cursor_stack.name == tier.preview_tool then
+      return true
+    end
+  end
+  return false
+end
+
 ---@param entity LuaEntity
 ---@return boolean
 function is_bd_entity(entity)
@@ -58,9 +83,6 @@ function is_bd_entity(entity)
     name = entity.ghost_name
   end
 
-  if name == "belt-draw-dummy-entity" then
-    return true
-  end
 
   for _, tier in pairs(tiers) do
     if name == tier.dummy then
@@ -77,14 +99,15 @@ function set_tool(player, belt_tier, notify)
   local cursor_stack = player.cursor_stack
   if cursor_stack then
     if not cursor_stack.valid_for_read or is_bd_tool(cursor_stack.name) or player.clear_cursor() then
-      local tier_info = belt_tier and tiers[belt_tier] or tiers[storage.current_tier]
+      local state = get_state(player)
+      local tier_info = belt_tier and tiers[belt_tier] or tiers[state.current_tier]
 
-      storage.current_tier = tier_info.name
-      cursor_stack.set_stack({ name = storage.dragging and tier_info.tool or tier_info.preview_tool })
+      state.current_tier = tier_info.name
+      cursor_stack.set_stack({ name = state.dragging and tier_info.tool or tier_info.preview_tool })
 
       if notify then
         player.create_local_flying_text({
-          text = { tiers[storage.current_tier].string },
+          text = { tier_info.string },
           create_at_cursor = true
         })
       end

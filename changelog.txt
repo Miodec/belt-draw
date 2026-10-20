@@ -1,4 +1,23 @@
 ---------------------------------------------------------------------------------------------------
+Version: 3.0.0
+  Major Features:
+    - Major rework with the new selection events in Factorio 2.1.22
+    - Super forced drawing (CTRL + SHIFT + drag by default): instead of going underground, anything in the way is marked for deconstruction and the belt is built straight through it.
+  Features:
+    - Alt, super forced and remote view drawing use their own preview sprites, so it's clear that ghosts will be placed.
+    - Proper multiplayer support: every player draws, picks a tier and sees their own preview independently.
+  Changes:
+    - Belt Draw follows your selection controls. If you swapped left and right click, rebind "Select for blueprint" and "Reverse select" in the controls menu.
+    - Removed the "Swap left and right click" setting, rebinding the selection controls replaces it.
+    - Removed the "I disabled smart belt building" setting, it is no longer needed.
+    - Rework parts of the source code structure
+    - Performance improvements
+  Bugfixes:
+    - Fix deconstructing sometimes missing belts.
+    - Fix deconstructing skipping ghosts of fast, express and turbo belts.
+    - Fix undergrounds being planned under fish, biters, dropped items and other things that move out of the way.
+    - Fix a drawing in progress being continued after loading a save made mid-drag.
+---------------------------------------------------------------------------------------------------
 Version: 2.3.0
   Changes:
     - Update to Factorio 2.1

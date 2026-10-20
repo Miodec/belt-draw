@@ -4,7 +4,6 @@ local modules = {
   require("prototypes.tools.fast"),
   require("prototypes.tools.express"),
   require("prototypes.other"),
-  require("prototypes.entities"),
   require("prototypes.input"),
   require("prototypes.sprites"),
 }
@@ -27,9 +26,9 @@ data:extend({
     name = "belt-draw-shortcut",
     action = "spawn-item",
     item_to_spawn = "belt-draw-generic",
-    icon = "__belt-draw__/graphics/shortcut2.png",
+    icon = "__belt-draw__/graphics/shortcuts/shortcut2.png",
     icon_size = 128,
-    small_icon = "__belt-draw__/graphics/shortcut2.png",
+    small_icon = "__belt-draw__/graphics/shortcuts/shortcut2.png",
     small_icon_size = 128,
     associated_control_input = "belt-draw-shortcut"
   },

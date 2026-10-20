@@ -12,15 +12,14 @@ belt.next_upgrade = nil
 
 local tool = table.deepcopy(base_tool)
 tool.name = "belt-draw"
-tool.place_result = "belt-draw-dummy-entity"
 tool.order = "c[automated-construction]-d[belt-draw]"
-tool.icon = "__belt-draw__/graphics/pencil.png"
+tool.icon = "__belt-draw__/graphics/tools/pencil.png"
 
 local preview_tool = table.deepcopy(base_tool)
 preview_tool.name = "belt-draw-preview"
-preview_tool.place_result = "belt-draw-dummy-transport-belt"
+preview_tool.place_result = "transport-belt"
 preview_tool.order = "c[automated-construction]-d[belt-draw-preview]"
-preview_tool.icon = "__belt-draw__/graphics/pencil.png"
+preview_tool.icon = "__belt-draw__/graphics/tools/pencil.png"
 
 return {
   tool,

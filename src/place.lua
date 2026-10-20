@@ -3,15 +3,13 @@ local tiers = require("tiers")
 
 ---@param player LuaPlayer
 ---@param segments Segment[]
----@param mode "normal"|"alt"
+---@param mode "normal"|"alt"|"super_forced"
 ---@return nil
 function place(player, segments, mode)
-  if storage.player_reach and player.character then
-    player.character_build_distance_bonus = storage.player_reach
-    storage.player_reach = nil
-  end
-
-  if mode == "alt" then
+  if mode == "super_forced" then
+    -- super forced blueprint building marks anything in the way for deconstruction
+    place_using_blueprint(player, segments, defines.build_mode.superforced)
+  elseif mode == "alt" then
     place_using_blueprint(player, segments)
   else
     place_using_inventory(player, segments)
@@ -20,8 +18,9 @@ end
 
 ---@param player LuaPlayer
 ---@param segments Segment[]
-function place_using_blueprint(player, segments)
-  local tier_info = tiers[storage.current_tier]
+---@param build_mode defines.build_mode?
+function place_using_blueprint(player, segments, build_mode)
+  local tier_info = tiers[get_state(player).current_tier]
 
   -- Create blueprint and collect all entities
   ---@type LuaEntity[]
@@ -34,7 +33,7 @@ function place_using_blueprint(player, segments)
   for _, segment in pairs(segments) do
     for _, node in pairs(segment.nodes) do
       local name = nil
-      if node.belt_type == "above" or (node.belt_type == "blocked") then
+      if node.belt_type == "above" or node.belt_type == "above_deconstruct" or node.belt_type == "blocked" then
         name = tier_info.entities.belt
       elseif node.belt_type == "down" or node.belt_type == "up" then
         name = tier_info.entities.underground_belt
@@ -96,7 +95,7 @@ function place_using_blueprint(player, segments)
         position = { center_x, center_y },
         player = player,
         by_player = player,
-        build_mode = defines.build_mode.forced,
+        build_mode = build_mode or defines.build_mode.forced,
         raise_built = false
       })
       player.cursor_stack.set_blueprint_entities({}) -- Clear blueprint entities to prevent reuse
@@ -108,7 +107,7 @@ end
 ---@param player LuaPlayer
 ---@param segments Segment[]
 function place_using_inventory(player, segments)
-  local tier_info = tiers[storage.current_tier]
+  local tier_info = tiers[get_state(player).current_tier]
 
 
   local build_ghosts = false
@@ -187,7 +186,7 @@ function place_using_inventory(player, segments)
       end
 
       player.surface.create_entity(entity)
-      player.surface.play_sound({
+      player.play_sound({
         path = "entity-build/" .. entity.name,
         position = player.position,
       })
@@ -200,7 +199,7 @@ function place_using_inventory(player, segments)
               text = { "belt-draw.missing-item" },
               position = { x = entity.position.x, y = entity.position.y },
             })
-            player.surface.play_sound({
+            player.play_sound({
               path = "utility/cannot_build",
               position = player.position,
             })
@@ -215,6 +214,9 @@ function place_using_inventory(player, segments)
             })
             cannot_reach_shown = true
           end
+        elseif can_reach then
+          -- back in reach, so the next unreachable stretch gets its own notification
+          cannot_reach_shown = false
         end
       end
       ::continue::

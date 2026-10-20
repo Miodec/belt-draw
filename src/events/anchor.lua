@@ -3,9 +3,10 @@ script.on_event("belt-draw-anchor", function(event)
   if not player then return end
 
   if not is_holding_bd_tool(player) then return end
-  if storage.current_segment == nil then return end
+  local state = get_state(player)
+  if state.current_segment == nil then return end
 
-  if #storage.current_segment.nodes <= 1 then
+  if #state.current_segment.nodes <= 1 then
     player.create_local_flying_text({
       text = { "belt-draw.already-anchored" },
       create_at_cursor = true
@@ -13,7 +14,7 @@ script.on_event("belt-draw-anchor", function(event)
     return
   end
 
-  add_segment(storage.current_segment.to, player)
+  add_segment(state.current_segment.to, player)
 
   player.create_local_flying_text({
     text = { "belt-draw.anchored" },

@@ -25,9 +25,9 @@ return {
   },
   {
     type = "custom-input",
-    name = "belt-draw-cancel",
+    name = "bd_build_pressed",
     key_sequence = "",
-    linked_game_control = "clear-cursor",
-    order = "a[mod]-b[belt-draw-cancel]",
+    linked_game_control = "build",
+    order = "a[mod]-b[belt-draw-place]",
   },
 }

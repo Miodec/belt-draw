@@ -1,9 +1,11 @@
 local findLDivergencePoint = require("divergence")
 local tiers = require("tiers")
 
----@alias BeltType "above"|"down"|"up"|"under"|"under_entity"|"blocked"|"above_connect"
+---@alias BeltType "above"|"down"|"up"|"under"|"under_entity"|"blocked"|"above_connect"|"above_deconstruct"
 ---@alias Position {x: number, y: number}
----@alias Node {x: number, y: number, direction: defines.direction, render: LuaRenderObject? , belt_type: BeltType|nil}
+---@alias NodeInfo {can_place: boolean, entity: LuaEntity|false, tile_blocks: boolean?, can_cover: boolean?}
+---@alias Drawn {sprite: string?, orientation: number?, x: number?, y: number?} what the render object currently shows, writing to it is an api call so unchanged values are skipped
+---@alias Node {x: number, y: number, direction: defines.direction, render: LuaRenderObject? , drawn: Drawn?, belt_type: BeltType|nil, deconstruct_entity: LuaEntity?}
 
 
 ---@class Segment
@@ -18,8 +20,13 @@ local tiers = require("tiers")
 ---@field orientation_override "horizontal"|"vertical"|nil
 ---@field belt_tier BeltTier
 ---@field last_segment Segment?
+---@field earlier_tiles table<number, table<number, true>>? tiles used by the segments before this one, keyed by x then y
+---@field shown_visibility string? which visibility the render objects were last set to, see apply_visibility
+---@field highlights table<string|integer, LuaEntity>? highlight boxes around entities super forced will deconstruct, keyed by entity
 local Segment = {}
 Segment.__index = Segment
+-- segments live in storage, so they need their methods back after a save is loaded
+script.register_metatable("Segment", Segment)
 
 ---@param from Position
 ---@param player LuaPlayer
@@ -54,24 +61,112 @@ function Segment.new(from, first_node_direction, player, self_id, belt_tier, las
   return self
 end
 
+--- Surface lookups for a node, cached for the whole drawing. Every cursor move replans every node,
+--- so without the cache the same tiles get queried over and over
+--- Keyed by x, then y, then direction. Numbers, string keys are slow to build
+---@param node Node
+---@param state PlayerState? passed in by hot loops, saves looking it up per node
+---@return NodeInfo
+function Segment:node_info(node, state)
+  state = state or get_state(self.player)
+  -- kept in storage, a local cache would differ between players in multiplayer
+  local cache = state.node_cache
+  if not cache then
+    cache = {}
+    state.node_cache = cache
+  end
+  local column = cache[node.x]
+  if not column then
+    column = {}
+    cache[node.x] = column
+  end
+  local by_direction = column[node.y]
+  if not by_direction then
+    by_direction = {}
+    column[node.y] = by_direction
+  end
+  -- the first node has no direction when the build key press wasn't seen
+  local direction = node.direction or -1
+  local info = by_direction[direction]
+  -- the entity may have been removed since, look again
+  if info and info.entity and not info.entity.valid then
+    info = nil
+  end
+  if not info then
+    info = {
+      can_place = self.player.surface.can_place_entity({
+        name = "transport-belt",
+        position = { x = node.x, y = node.y },
+        direction = node.direction,
+        force = self.player.force
+      }),
+      entity = self:find_entity_at_node(node) or false,
+    }
+    by_direction[direction] = info
+  end
+  return info
+end
+
 ---@param node Node
 ---@return LuaEntity|nil
 function Segment:find_entity_at_node(node)
   ---@type LuaEntity?
   local entity = self.player.surface.find_entities_filtered({
-    area = { { node.x - 0.5, node.y - 0.5 }, { node.x + 0.5, node.y + 0.5 } }
+    area = { { node.x - 0.5, node.y - 0.5 }, { node.x + 0.5, node.y + 0.5 } },
+    -- things that move or get out of the way, they shouldn't block or be undergrounded under
+    type = {
+      "vehicle",
+      "spider-vehicle",
+      "character",
+      "spider-leg",
+      "fish",
+      "unit",
+      "spider-unit",
+      "segmented-unit",
+      "segment",
+      "corpse",
+      "item-entity",
+      "fire",
+      "highlight-box", -- our own super forced highlights
+    },
+    invert = true,
   })[1]
+  return entity
+end
 
-  if entity then
-    if entity.type == "vehicle" or
-        entity.type == "spider-vehicle" or
-        entity.type == "character" or
-        entity.type == "spider-leg"
-    then
-      entity = nil
+--- Whether the tile itself (water, void...) stops a belt from being built
+---@param node Node
+---@return boolean
+function Segment:tile_blocks(node)
+  local info = self:node_info(node)
+  if info.tile_blocks == nil then
+    info.tile_blocks = false
+    local tile = self:find_tile_at_node(node)
+    if not tile then
+      info.tile_blocks = true
+    else
+      local belt_layers = prototypes.entity["transport-belt"].collision_mask.layers
+      for layer in pairs(tile.prototype.collision_mask.layers) do
+        if belt_layers[layer] then
+          info.tile_blocks = true
+          break
+        end
+      end
     end
   end
-  return entity
+  return info.tile_blocks
+end
+
+--- Whether building over this tile automatically places a cover tile (landfill, foundation, ice platform...)
+---@param node Node
+---@return boolean
+function Segment:can_cover_tile(node)
+  local info = self:node_info(node)
+  if info.can_cover == nil then
+    local tile = self:find_tile_at_node(node)
+    info.can_cover = tile ~= nil and self.player.surface.get_default_cover_tile(self.player.force, tile.name) ~= nil
+  end
+  return info.can_cover
 end
 
 function Segment:find_tile_at_node(node)
@@ -206,6 +301,11 @@ function Segment:update_to(pos)
     return
   end
 
+  self.player.play_sound({
+    path = "entity-build/entity-ghost",
+    position = self.player.position,
+  })
+
   -- Save old 'to' position and orientation before updating
   local prev_to = { x = self.to.x, y = self.to.y }
   local prev_orientation = self.orientation
@@ -244,30 +344,134 @@ end
 
 function Segment:clear_visualization()
   for _, node in pairs(self.nodes) do
-    if node.render ~= nil then
+    -- renders expire after a minute, so they can already be gone
+    if node.render ~= nil and node.render.valid then
       node.render.destroy()
-      node.render = nil
+    end
+    node.render = nil
+  end
+  self:clear_highlights()
+end
+
+function Segment:clear_highlights()
+  for _, highlight in pairs(self.highlights or {}) do
+    if highlight.valid then highlight.destroy() end
+  end
+  self.highlights = {}
+end
+
+--- Red corners around every entity super forced will mark for deconstruction.
+--- Existing boxes are kept, recreating them every update makes them flicker
+function Segment:update_highlights()
+  local old = self.highlights or {}
+  ---@type table<string|integer, LuaEntity>
+  local new = {}
+
+  if self:shows_preview() then
+    for _, node in pairs(self.nodes) do
+      local entity = node.deconstruct_entity
+      -- multi tile entities can block several nodes, only highlight them once
+      if node.belt_type == "above_deconstruct" and entity and entity.valid then
+        -- LuaEntity wrappers differ per lookup, so key by something stable
+        local key = entity.unit_number or (entity.name .. "@" .. entity.position.x .. "," .. entity.position.y)
+        if not new[key] then
+          local highlight = old[key]
+          if highlight and highlight.valid then
+            old[key] = nil
+          else
+            highlight = self.player.surface.create_entity({
+              name = "highlight-box",
+              position = entity.position,
+              -- target only works for entities with health (not ghosts, items on ground...), otherwise use a fixed box
+              target = entity.is_entity_with_health and entity or nil,
+              bounding_box = not entity.is_entity_with_health and entity.selection_box or nil,
+              box_type = "not-allowed",
+              render_player_index = self.player.index,
+              blink_interval = 0,
+            })
+          end
+          new[key] = highlight
+        end
+      end
     end
   end
+
+  -- whatever is left over is no longer in the way
+  for _, highlight in pairs(old) do
+    if highlight.valid then highlight.destroy() end
+  end
+  self.highlights = new
 end
 
 local scale = 0.5
 
+-- these sprites have a "-alt" version used while drawing in alt mode
+local HAS_ALT_SPRITE = {
+  ["belt-draw-above"] = true,
+  ["belt-draw-under"] = true,
+  ["belt-draw-entryexit"] = true,
+  ["belt-draw-anchor"] = true,
+}
+
+--- Whether the preview uses the alt sprites
+---@return boolean
+function Segment:uses_alt()
+  -- super forced and remote view always build ghosts, so they get the alt look too
+  local state = get_state(self.player)
+  return state.draw_alt or state.super_forced or self.player.controller_type == defines.controllers.remote
+end
+
+---@param sprite_name string
+---@param use_alt boolean from Segment:uses_alt, looked up once per update instead of per node
+---@return string
+local function with_alt(sprite_name, use_alt)
+  if use_alt and HAS_ALT_SPRITE[sprite_name] then
+    return sprite_name .. "-alt"
+  end
+  return sprite_name
+end
+
+---@param node Node
+---@param sprite string
+local function set_sprite(node, sprite)
+  node.drawn = node.drawn or {}
+  if node.drawn.sprite ~= sprite then
+    node.render.sprite = sprite
+    node.drawn.sprite = sprite
+  end
+end
+
+--- Swap sprites to/from their alt versions, used when switching between normal and alt mode
+function Segment:apply_alt_sprites()
+  local use_alt = self:uses_alt()
+  for _, node in pairs(self.nodes) do
+    if node.render and node.render.valid then
+      local base_name = string.gsub(node.drawn and node.drawn.sprite or node.render.sprite, "%-alt$", "")
+      set_sprite(node, with_alt(base_name, use_alt))
+    end
+  end
+end
+
 ---@param node Node
 function Segment:render_anchor(node)
+  local sprite_name = with_alt("belt-draw-anchor", self:uses_alt())
   local sprite = {
-    sprite = "belt-draw-anchor",
+    sprite = sprite_name,
     x_scale = scale,
     y_scale = scale,
+    visible = not get_state(self.player).hide_preview,
     target = { x = node.x, y = node.y },
+    -- only the player drawing sees the preview
+    players = { self.player },
     surface = self.player.surface,
     time_to_live = 60 * 60 -- 1 minute should be plenty, protects against orphaned render objects if something goes wrong
   }
   node.render = rendering.draw_sprite(sprite)
+  node.drawn = { sprite = sprite_name, x = node.x, y = node.y }
 end
 
 local function get_sprite_name_for_belt_type(belt_type)
-  if belt_type == "above" then
+  if belt_type == "above" or belt_type == "above_deconstruct" then
     return "belt-draw-above"
   elseif belt_type == "under" or belt_type == "under_entity" or belt_type == "above_connect" then
     return "belt-draw-under"
@@ -281,7 +485,9 @@ local function get_sprite_name_for_belt_type(belt_type)
 end
 
 ---@param node Node
-function Segment:render_node(node)
+---@param use_alt boolean?
+---@param visible boolean?
+function Segment:render_node(node, use_alt, visible)
   local sprite_name = nil
   sprite_name = get_sprite_name_for_belt_type(node.belt_type)
 
@@ -289,7 +495,11 @@ function Segment:render_node(node)
     return
   end
 
+  if use_alt == nil then use_alt = self:uses_alt() end
+  if visible == nil then visible = self:shows_preview() end
 
+  sprite_name = with_alt(sprite_name, use_alt)
+  local orientation = node.direction * 0.0625 - 0.25
   ---@type Position
   local target = { x = node.x, y = node.y }
   local sprite = {
@@ -299,29 +509,50 @@ function Segment:render_node(node)
     target = target,
     surface = self.player.surface,
     ---@type number
-    orientation = node.direction * 0.0625 - 0.25,
+    orientation = orientation,
+    visible = visible,
+    players = { self.player },
     time_to_live = 60 * 60 -- 1 minute should be plenty, protects against orphaned render objects if something goes wrong
   }
   node.render = rendering.draw_sprite(sprite)
+  node.drawn = { sprite = sprite_name, orientation = orientation, x = node.x, y = node.y }
+end
+
+--- Hidden until the player starts dragging, the preview tool already shows that belt
+---@return boolean
+function Segment:shows_preview()
+  -- dragging is only set after this update, so also check the node count
+  local state = get_state(self.player)
+  if state.hide_preview then return false end
+  return state.dragging or #self.nodes >= 2
 end
 
 ---@param node Node
-function Segment:update_render(node)
+---@param use_alt boolean? looked up when not given
+---@param visible boolean? for a newly created render, looked up when not given
+function Segment:update_render(node, use_alt, visible)
+  if use_alt == nil then use_alt = self:uses_alt() end
   if not node.render or not node.render.valid then
     -- Create render if it doesn't exist
-    self:render_node(node)
+    self:render_node(node, use_alt, visible)
     return
   end
 
-  node.render.orientation = node.direction * 0.0625 - 0.25
-  local sprite_name = get_sprite_name_for_belt_type(node.belt_type)
-  node.render.sprite = sprite_name
+  node.drawn = node.drawn or {}
+  local orientation = node.direction * 0.0625 - 0.25
+  if node.drawn.orientation ~= orientation then
+    node.render.orientation = orientation
+    node.drawn.orientation = orientation
+  end
+  set_sprite(node, with_alt(get_sprite_name_for_belt_type(node.belt_type), use_alt))
 end
 
 ---@param divergence_index number?
 function Segment:visualize(divergence_index)
   divergence_index = divergence_index or 0
   local target_count = #self.nodes
+  local use_alt = self:uses_alt()
+  local visible = self:shows_preview()
 
   -- Only update/create render objects from divergence point onwards
   for i = divergence_index + 1, target_count do
@@ -330,16 +561,21 @@ function Segment:visualize(divergence_index)
 
     if node.render and node.render.valid then
       -- Update existing render object
-      node.render.target = { x = node.x, y = node.y }
+      node.drawn = node.drawn or {}
+      if node.drawn.x ~= node.x or node.drawn.y ~= node.y then
+        node.render.target = { x = node.x, y = node.y }
+        node.drawn.x = node.x
+        node.drawn.y = node.y
+      end
       if not is_anchor then
-        self:update_render(node)
+        self:update_render(node, use_alt, visible)
       end
     else
       -- Create new render object
       if is_anchor then
         self:render_anchor(node)
       else
-        self:render_node(node)
+        self:render_node(node, use_alt, visible)
       end
     end
   end
@@ -352,6 +588,26 @@ function Segment:visualize(divergence_index)
       node.render = nil
     end
   end
+
+  self:apply_visibility()
+end
+
+function Segment:apply_visibility()
+  local visible = self:shows_preview()
+  local hide_preview = get_state(self.player).hide_preview and true or false
+  -- new render objects are created with the right visibility, so existing ones only need touching when it changes
+  local shown = tostring(visible) .. tostring(hide_preview)
+  if shown ~= self.shown_visibility then
+    self.shown_visibility = shown
+    for i, node in pairs(self.nodes) do
+      -- Anchors stay visible, they mark where the previous segment ended
+      local is_anchor = (i == 1 and self.self_id ~= 1)
+      if node.render and node.render.valid then
+        node.render.visible = (is_anchor and not hide_preview) or visible
+      end
+    end
+  end
+  self:update_highlights()
 end
 
 ---@return number
@@ -408,6 +664,7 @@ function Segment:update_nodes(skip)
       local old_belt_type = self.nodes[target_idx].belt_type
       local new_node = new_nodes[i]
       new_node.render = self.nodes[target_idx].render
+      new_node.drawn = self.nodes[target_idx].drawn
       new_node.belt_type = old_belt_type
       -- Update existing node
       self.nodes[target_idx] = new_node
@@ -570,6 +827,8 @@ end
 
 function Segment:plan_belts(skip)
   skip = 0
+  local state = get_state(self.player)
+  local use_alt = self:uses_alt()
 
   -- When replanning from start (skip=0), clear all belt_types to allow fresh planning
   if skip == 0 then
@@ -578,23 +837,43 @@ function Segment:plan_belts(skip)
     end
   end
 
+  -- tiles taken by earlier segments of this drawing. Those don't change once this segment exists, so only collect them once
+  local taken = self.earlier_tiles
+  if not taken then
+    taken = {}
+    for _, segment in pairs(state.segments) do
+      if segment == self then break end
+      for _, other_node in pairs(segment.nodes) do
+        local column = taken[other_node.x]
+        if not column then
+          column = {}
+          taken[other_node.x] = column
+        end
+        column[other_node.y] = true
+      end
+    end
+    self.earlier_tiles = taken
+  end
+
   -- Process backwards from end to skip
   for i = #self.nodes, skip + 1, -1 do
     local node = self.nodes[i]
 
-    local can_place = self.player.surface.can_place_entity({
-      name = "transport-belt",
-      position = { x = node.x, y = node.y },
-      direction = node.direction,
-      force = self.player.force
-    })
-
-    local entity = self:find_entity_at_node(node)
+    local info = self:node_info(node, state)
+    local can_place = info.can_place
+    local entity = info.entity or nil
 
     node.belt_type = "above"
 
     if not can_place then
       node.belt_type = "blocked"
+      if not entity and not self:tile_blocks(node) then
+        -- only blocked by ignored entities (fish, biters...), build on top
+        node.belt_type = "above"
+      elseif (state.draw_alt or state.super_forced) and not entity and self:can_cover_tile(node) then
+        -- alt and super forced build with a blueprint, which covers water etc. with landfill/foundation automatically
+        node.belt_type = "above"
+      end
     end
 
     local type = entity and (entity.type == "entity-ghost" and entity.ghost_type or entity.type)
@@ -614,16 +893,18 @@ function Segment:plan_belts(skip)
       end
     end
 
+    -- super forced: whatever is in the way gets marked for deconstruction instead of undergrounded
+    -- (nothing to deconstruct when the tile itself is blocking, so that still goes under)
+    node.deconstruct_entity = nil
+    if state.super_forced and entity and node.belt_type == "blocked" then
+      node.belt_type = "above_deconstruct"
+      node.deconstruct_entity = entity
+    end
+
     -- check for collision with previous segments
-    for _, segment in pairs(storage.segments) do
-      if segment == self then break end
-      for other_node_index, other_node in pairs(segment.nodes) do
-        if other_node.x == node.x and other_node.y == node.y then
-          node.belt_type = "blocked"
-          break
-        end
-        ::continue::
-      end
+    local taken_column = taken[node.x]
+    if taken_column and taken_column[node.y] then
+      node.belt_type = "blocked"
     end
 
     -- if this node is above, next is above_connect, and the one after is above
@@ -634,7 +915,7 @@ function Segment:plan_belts(skip)
         next_node and next_node.belt_type == "above_connect" and
         next_next_node and next_next_node.belt_type == "above" then
       next_node.belt_type = "blocked"
-      self:update_render(next_node)
+      self:update_render(next_node, use_alt)
     end
   end
 
@@ -642,17 +923,31 @@ function Segment:plan_belts(skip)
 
   local tier_data = tiers[self.belt_tier]
 
-  for i = 1, #self.nodes do
+  local i = 0
+  while i < #self.nodes do
+    i = i + 1
     local node = self.nodes[i]
 
     if node.belt_type == "blocked" then
       -- Try to find underground entry for blocked node
       local entry_idx, exit_idx = self:find_underground(i)
 
+      -- nothing was changed, so every blocked node up to the exit would find the same entry and exit.
+      -- skip them, rescanning the whole obstacle for each of its tiles gets slow on long obstacles
+      if not exit_idx then
+        -- no exit anywhere ahead, no later node can get an underground either
+        break
+      end
+      if not entry_idx then
+        i = exit_idx - 1
+        goto continue
+      end
+
       -- If we found both entry and exit, create underground
       if entry_idx and exit_idx then
         if (exit_idx - entry_idx - 1) > tier_data.max_underground_distance then
           -- Limit underground length to 4 belts
+          i = exit_idx - 1
           goto continue
         end
 
@@ -661,7 +956,7 @@ function Segment:plan_belts(skip)
 
 
         self.nodes[entry_idx].belt_type = "down"
-        self:update_render(self.nodes[entry_idx])
+        self:update_render(self.nodes[entry_idx], use_alt)
 
         for j = entry_idx + 1, exit_idx - 1 do
           local under_node = self.nodes[j]
@@ -670,11 +965,11 @@ function Segment:plan_belts(skip)
           else
             under_node.belt_type = "under"
           end
-          self:update_render(under_node)
+          self:update_render(under_node, use_alt)
         end
 
         self.nodes[exit_idx].belt_type = "up"
-        self:update_render(self.nodes[exit_idx])
+        self:update_render(self.nodes[exit_idx], use_alt)
 
 
         if entry_node.direction ~= exit_node.direction then
@@ -691,6 +986,12 @@ function Segment:plan_belts(skip)
     -- in a loop, check previous nodes. if its blocked, continue, if its above, set it to down
     ::continue::
   end
+end
+
+--- Plan and redraw every node, e.g. after switching in/out of super forced mode
+function Segment:replan()
+  self:plan_belts(0)
+  self:visualize()
 end
 
 function Segment:find_underground(node_index)
@@ -732,6 +1033,7 @@ function Segment:remove_last_node()
     last_node.render.destroy()
   end
   table.remove(self.nodes)
+  self:update_highlights()
 end
 
 return Segment

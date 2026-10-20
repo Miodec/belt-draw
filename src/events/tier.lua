@@ -1,7 +1,7 @@
 script.on_event("belt-draw-next-tier", function(event)
   local player = game.get_player(event.player_index) --- @diagnostic disable-line
   if not player then return end
-  if storage.dragging then
+  if get_state(player).dragging then
     player.create_local_flying_text({
       text = { "belt-draw.cannot-switch-tier-while-dragging" },
       create_at_cursor = true
@@ -27,7 +27,7 @@ end)
 script.on_event("belt-draw-previous-tier", function(event)
   local player = game.get_player(event.player_index) --- @diagnostic disable-line
   if not player then return end
-  if storage.dragging then
+  if get_state(player).dragging then
     player.create_local_flying_text({
       text = { "belt-draw.cannot-switch-tier-while-dragging" },
       create_at_cursor = true

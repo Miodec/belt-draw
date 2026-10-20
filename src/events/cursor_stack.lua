@@ -4,6 +4,7 @@ script.on_event(defines.events.on_player_cursor_stack_changed, function(event)
     return
   end
 
+  local state = get_state(player)
   local current_stack = player.cursor_stack
   local ghost = player.cursor_ghost and player.cursor_ghost.name
 
@@ -20,13 +21,13 @@ script.on_event(defines.events.on_player_cursor_stack_changed, function(event)
     else
       -- auto-update tier when picking up an entity or ghost
       local tier = get_belt_tier_for_entity_name(cursor_entity_or_ghost_name)
-      if tier and storage.current_tier ~= tier then
+      if tier and state.current_tier ~= tier then
         player.create_local_flying_text {
           text = { "belt-draw.tier-updated", { "belt-draw.tier-" .. tier } },
           position = player.position,
           create_at_cursor = true
         }
-        storage.current_tier = tier
+        state.current_tier = tier
       end
     end
   end
@@ -34,28 +35,15 @@ script.on_event(defines.events.on_player_cursor_stack_changed, function(event)
   if not current_stack or not current_stack.valid_for_read then return end
 
   if current_stack.name == "belt-draw-generic" then
-    set_tool(player, storage.current_tier, true)
+    set_tool(player, state.current_tier, true)
   end
 
   if is_holding_bd_tool(player) then
     local belt_tier = get_belt_tier(current_stack.name)
     if belt_tier then
-      storage.current_tier = belt_tier
-    end
-
-    if player.character then
-      if storage.player_reach == nil then
-        storage.player_reach = player.character_build_distance_bonus
-      end
-      player.character_build_distance_bonus = 1000000
+      state.current_tier = belt_tier
     end
   else
-    if player.character then
-      if storage.player_reach then
-        player.character_build_distance_bonus = storage.player_reach
-        storage.player_reach = nil
-      end
-    end
     cleanup(player, false)
   end
 end)

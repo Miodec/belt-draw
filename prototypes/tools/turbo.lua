@@ -11,15 +11,14 @@ belt.collision_mask = {
 
 local tool = table.deepcopy(base_tool)
 tool.name = "belt-draw-turbo"
-tool.place_result = "belt-draw-dummy-entity"
 tool.order = "c[automated-construction]-d[belt-draw-turbo]"
-tool.icon = "__belt-draw__/graphics/turbo-pencil.png"
+tool.icon = "__belt-draw__/graphics/tools/turbo-pencil.png"
 
 local preview_tool = table.deepcopy(base_tool)
 preview_tool.name = "belt-draw-turbo-preview"
-preview_tool.place_result = "belt-draw-dummy-turbo-transport-belt"
+preview_tool.place_result = "turbo-transport-belt"
 preview_tool.order = "c[automated-construction]-d[belt-draw-turbo-preview]"
-preview_tool.icon = "__belt-draw__/graphics/turbo-pencil.png"
+preview_tool.icon = "__belt-draw__/graphics/tools/turbo-pencil.png"
 
 return {
   tool,

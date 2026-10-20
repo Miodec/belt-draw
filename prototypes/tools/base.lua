@@ -5,9 +5,10 @@ return {
   stack_size = 1,
   subgroup = "tool",
   mouse_cursor = "arrow",
+  send_pre_selection_events = true,
   select = {
-    mode = settings.startup["belt-draw-swap-left-right-click"].value and "deconstruct" or "nothing",
-    border_color = { a = 0, r = settings.startup["belt-draw-swap-left-right-click"].value and 1 or 0 },
+    mode = { "nothing" },
+    border_color = { a = 0 },
     cursor_box_type = "not-allowed",
   },
   alt_select = {
@@ -16,8 +17,9 @@ return {
     cursor_box_type = "not-allowed",
   },
   reverse_select = {
-    mode = settings.startup["belt-draw-swap-left-right-click"].value and { "nothing" } or { "deconstruct", "any-entity" },
-    border_color = { a = 0, r = settings.startup["belt-draw-swap-left-right-click"].value and 0 or 1 },
+    -- in 2.1 "deconstruct" no longer implies "any-entity", so it has to be listed explicitly
+    mode = { "deconstruct", "any-entity" },
+    border_color = { a = 0, r = 1 },
     cursor_box_type = "not-allowed",
     entity_type_filters = {
       "transport-belt",

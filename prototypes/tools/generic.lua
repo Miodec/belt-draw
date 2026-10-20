@@ -4,7 +4,7 @@ return {
   {
     type = "item",
     name = "belt-draw-generic",
-    icon = "__belt-draw__/graphics/pencil.png",
+    icon = "__belt-draw__/graphics/tools/pencil.png",
     icon_size = 64,
     stack_size = 1,
     subgroup = "tool",

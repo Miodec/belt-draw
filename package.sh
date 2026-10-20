@@ -20,6 +20,7 @@ rm -rf "$PACKAGE_DIR/screenshots"
 rm -rf "$PACKAGE_DIR/design"
 rm -rf "$PACKAGE_DIR/.vscode"
 rm -f "$PACKAGE_DIR/package.sh"
+find "$PACKAGE_DIR" -type d -name ".claude" -prune -exec rm -rf {} +
 
 # Create zip in user's home directory
 cd "$TEMP_DIR"
