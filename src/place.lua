@@ -412,6 +412,9 @@ function place_using_inventory(player, segments)
   local undo_count = player.undo_redo_stack.get_undo_item_count()
   ---@type RotationRecord[]
   local rotations = {}
+  -- real belts get built after the ghosts: a blueprint can't join an existing undo item, but create_entity can join its one
+  ---@type table[]
+  local builds = {}
   -- build manually, one by one, from inventory
   for _, segment in pairs(segments) do
     for _, node in pairs(segment.nodes) do
@@ -479,16 +482,12 @@ function place_using_inventory(player, segments)
           entity.direction = (entity.direction + 8) % 16
         end
 
-        local built = player.surface.create_entity(entity)
-        -- only take the item once it's actually built, a failed build would lose it
-        if built and inventory then
+        -- taken now so the next node's count is right, given back if the build fails
+        if inventory then
           inventory.remove({ name = entity.name, count = 1 })
           built_at_least_one = true
         end
-        player.play_sound({
-          path = "entity-build/" .. entity.name,
-          position = player.position,
-        })
+        table.insert(builds, entity)
       end
 
 
@@ -525,6 +524,19 @@ function place_using_inventory(player, segments)
 
   if #ghost_nodes > 0 then
     place_ghosts(player, ghost_nodes, { rotations = rotations, undo_count = undo_count })
+  end
+  local stack = player.undo_redo_stack
+  for _, entity in ipairs(builds) do
+    -- 0 starts a new undo item, 1 adds to the latest
+    entity.undo_index = stack.get_undo_item_count() > undo_count and 1 or 0
+    local built = player.surface.create_entity(entity)
+    if not built and inventory then
+      inventory.insert({ name = entity.name, count = 1 })
+    end
+    player.play_sound({
+      path = "entity-build/" .. entity.name,
+      position = player.position,
+    })
   end
   attach_rotations_to_undo(player, rotations, undo_count)
 end

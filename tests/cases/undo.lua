@@ -65,4 +65,42 @@ return {
       end)
     ),
   },
+  {
+    name = "one undo reverts an inventory drawing that goes out of reach, belts and ghosts",
+    timeout = 60 * 30,
+    setup = function(ctx)
+      ctx.player.teleport({ 0, 3.5 })
+      h.give(ctx, "transport-belt", 50)
+      h.hold_tool(ctx)
+    end,
+    steps = h.steps(
+      h.drag(h.controls.draw, { -13.5, 0.5 }, { 13.5, 0.5 }),
+      h.run(function(ctx)
+        for _, position in ipairs(h.row(-13.5, 13.5)) do
+          h.expect(ctx, position, "transport-belt", east, not h.in_reach(ctx, position))
+        end
+      end),
+      h.press_and_release("undo"),
+      h.run(function(ctx)
+        for _, position in ipairs(h.row(-13.5, 13.5)) do
+          if h.in_reach(ctx, position) then
+            local belt = h.expect(ctx, position, "transport-belt")
+            h.check(belt.to_be_deconstructed(), "belt at " .. position[1] .. " isn't marked for deconstruction")
+          else
+            h.expect_none(ctx, position, "transport-belt", true)
+          end
+        end
+      end),
+      h.press_and_release("redo"),
+      h.run(function(ctx)
+        for _, position in ipairs(h.row(-13.5, 13.5)) do
+          local in_reach = h.in_reach(ctx, position)
+          local belt = h.expect(ctx, position, "transport-belt", east, not in_reach)
+          if in_reach then
+            h.check(not belt.to_be_deconstructed(), "belt at " .. position[1] .. " is still marked for deconstruction")
+          end
+        end
+      end)
+    ),
+  },
 }
