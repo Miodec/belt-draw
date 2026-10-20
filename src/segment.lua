@@ -46,7 +46,8 @@ function Segment.new(from, first_node_direction, player, self_id, belt_tier, las
     {
       x = from.x,
       y = from.y,
-      direction = first_node_direction,
+      -- only known when the build key was pressed, shift drawing (alt select) doesn't press it
+      direction = first_node_direction or defines.direction.north,
       render = nil,
       belt_type = "above"
     }
@@ -332,7 +333,7 @@ function Segment:update_to(pos)
 
   local divergence = findLDivergencePoint(self.from, self.prev_to, self.to,
     prev_orientation or self.orientation or "horizontal")
-  local divergenceIndex = (divergence and divergence.index or 0) - tiers[self.belt_tier].max_underground_distance
+  local divergenceIndex = (divergence and divergence.index or 0) - get_underground_reach(self.belt_tier)
   if divergenceIndex < 0 then
     divergenceIndex = 0
   end
@@ -921,7 +922,7 @@ function Segment:plan_belts(skip)
 
 
 
-  local tier_data = tiers[self.belt_tier]
+  local underground_reach = get_underground_reach(self.belt_tier)
 
   local i = 0
   while i < #self.nodes do
@@ -945,8 +946,8 @@ function Segment:plan_belts(skip)
 
       -- If we found both entry and exit, create underground
       if entry_idx and exit_idx then
-        if (exit_idx - entry_idx - 1) > tier_data.max_underground_distance then
-          -- Limit underground length to 4 belts
+        if (exit_idx - entry_idx - 1) > underground_reach then
+          -- further than the tier's undergrounds can reach
           i = exit_idx - 1
           goto continue
         end

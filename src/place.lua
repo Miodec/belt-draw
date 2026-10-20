@@ -9,7 +9,8 @@ function place(player, segments, mode)
   if mode == "super_forced" then
     -- super forced blueprint building marks anything in the way for deconstruction
     place_using_blueprint(player, segments, defines.build_mode.superforced)
-  elseif mode == "alt" then
+  elseif mode == "alt" or player.controller_type == defines.controllers.remote then
+    -- remote view can only place ghosts, so it works like alt mode
     place_using_blueprint(player, segments)
   else
     place_using_inventory(player, segments)
@@ -20,6 +21,20 @@ end
 ---@param segments Segment[]
 ---@param build_mode defines.build_mode?
 function place_using_blueprint(player, segments, build_mode)
+  ---@type Node[]
+  local nodes = {}
+  for _, segment in pairs(segments) do
+    for _, node in pairs(segment.nodes) do
+      table.insert(nodes, node)
+    end
+  end
+  place_nodes_using_blueprint(player, nodes, build_mode)
+end
+
+---@param player LuaPlayer
+---@param nodes Node[]
+---@param build_mode defines.build_mode?
+function place_nodes_using_blueprint(player, nodes, build_mode)
   local tier_info = tiers[get_state(player).current_tier]
 
   -- Create blueprint and collect all entities
@@ -30,18 +45,16 @@ function place_using_blueprint(player, segments, build_mode)
   local node_positions = {} -- Store expected positions
 
   -- First pass: collect all node positions
-  for _, segment in pairs(segments) do
-    for _, node in pairs(segment.nodes) do
-      local name = nil
-      if node.belt_type == "above" or node.belt_type == "above_deconstruct" or node.belt_type == "blocked" then
-        name = tier_info.entities.belt
-      elseif node.belt_type == "down" or node.belt_type == "up" then
-        name = tier_info.entities.underground_belt
-      end
+  for _, node in pairs(nodes) do
+    local name = nil
+    if node.belt_type == "above" or node.belt_type == "above_deconstruct" or node.belt_type == "blocked" then
+      name = tier_info.entities.belt
+    elseif node.belt_type == "down" or node.belt_type == "up" then
+      name = tier_info.entities.underground_belt
+    end
 
-      if name then
-        table.insert(node_positions, { x = node.x, y = node.y, node = node, name = name })
-      end
+    if name then
+      table.insert(node_positions, { x = node.x, y = node.y, node = node, name = name })
     end
   end
 
@@ -50,14 +63,20 @@ function place_using_blueprint(player, segments, build_mode)
   end
 
   -- Calculate bounding box center
-  local min_x, max_x = node_positions[1].x, node_positions[1].x
-  local min_y, max_y = node_positions[1].y, node_positions[1].y
+  ---@type number
+  local min_x = node_positions[1].x
+  ---@type number
+  local max_x = node_positions[1].x
+  ---@type number
+  local min_y = node_positions[1].y
+  ---@type number
+  local max_y = node_positions[1].y
 
   for _, pos in pairs(node_positions) do
-    min_x = math.min(min_x, pos.x)
-    max_x = math.max(max_x, pos.x)
-    min_y = math.min(min_y, pos.y)
-    max_y = math.max(max_y, pos.y)
+    if pos.x < min_x then min_x = pos.x end
+    if pos.x > max_x then max_x = pos.x end
+    if pos.y < min_y then min_y = pos.y end
+    if pos.y > max_y then max_y = pos.y end
   end
 
   local center_x = (min_x + max_x) / 2
@@ -104,6 +123,26 @@ function place_using_blueprint(player, segments, build_mode)
   end
 end
 
+--- How out of reach (and out of items) nodes of an inventory drawing get built: as ghosts, through a blueprint.
+--- A ghost created with fast replace would take the real belt underneath away (into the inventory, even out of reach)
+---@param player LuaPlayer
+---@param nodes Node[]
+function place_ghosts(player, nodes)
+  place_nodes_using_blueprint(player, nodes)
+end
+
+--- Whether this exact belt is already at the node
+---@param surface LuaSurface
+---@param name string
+---@param node Node
+---@return boolean
+local function has_same_belt(surface, name, node)
+  for _, e in pairs(surface.find_entities_filtered({ position = { node.x, node.y }, name = name })) do
+    if e.direction == node.direction then return true end
+  end
+  return false
+end
+
 ---@param player LuaPlayer
 ---@param segments Segment[]
 function place_using_inventory(player, segments)
@@ -120,6 +159,9 @@ function place_using_inventory(player, segments)
   local built_at_least_one = false
   local missing_item_shown = false
   local cannot_reach_shown = false
+  -- nodes that can't be built from the inventory, they all go into one blueprint at the end
+  ---@type Node[]
+  local ghost_nodes = {}
   -- build manually, one by one, from inventory
   for _, segment in pairs(segments) do
     for _, node in pairs(segment.nodes) do
@@ -141,15 +183,15 @@ function place_using_inventory(player, segments)
         build_ghosts = false
       end
 
-      local dx = player.position.x - node.x
-      local dy = player.position.y - node.y
-      local distance_squared = dx * dx + dy * dy
-      local reach_squared = player.build_distance * player.build_distance
+      local in_reach = can_reach(player.position, player.build_distance, node.x, node.y)
 
-      local can_reach = distance_squared < reach_squared
-
-      if not can_reach then
+      if not in_reach then
         build_ghosts = true
+      end
+
+      -- nothing to do when the same belt is already there. Building it again fails after the item was taken
+      if not build_ghosts and node.belt_type == "above" and has_same_belt(player.surface, name, node) then
+        goto continue
       end
 
       local entity = {
@@ -170,26 +212,24 @@ function place_using_inventory(player, segments)
       end
 
       if build_ghosts then
-        entity.create_build_effect_smoke = true
-        entity.ghost_name = entity.name
-        entity.name = "entity-ghost"
-        if entity.belt_to_ground_type then
-          entity.type = entity.belt_to_ground_type
-          entity.belt_to_ground_type = nil
-        end
-      elseif inventory then
-        inventory.remove({ name = entity.name, count = 1 })
-        built_at_least_one = true
+        -- built with a blueprint at the end, see place_ghosts
+        table.insert(ghost_nodes, node)
+      else
         if node.belt_type == "up" then
           entity.direction = (entity.direction + 8) % 16
         end
-      end
 
-      player.surface.create_entity(entity)
-      player.play_sound({
-        path = "entity-build/" .. entity.name,
-        position = player.position,
-      })
+        local built = player.surface.create_entity(entity)
+        -- only take the item once it's actually built, a failed build would lose it
+        if built and inventory then
+          inventory.remove({ name = entity.name, count = 1 })
+          built_at_least_one = true
+        end
+        player.play_sound({
+          path = "entity-build/" .. entity.name,
+          position = player.position,
+        })
+      end
 
 
       if inventory and player.character then
@@ -206,7 +246,7 @@ function place_using_inventory(player, segments)
             missing_item_shown = true
           end
         end
-        if count > 0 and not can_reach then
+        if count > 0 and not in_reach then
           if not cannot_reach_shown then
             player.create_local_flying_text({
               text = { "belt-draw.cannot-reach" },
@@ -214,12 +254,16 @@ function place_using_inventory(player, segments)
             })
             cannot_reach_shown = true
           end
-        elseif can_reach then
+        elseif in_reach then
           -- back in reach, so the next unreachable stretch gets its own notification
           cannot_reach_shown = false
         end
       end
       ::continue::
     end
+  end
+
+  if #ghost_nodes > 0 then
+    place_ghosts(player, ghost_nodes)
   end
 end

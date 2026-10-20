@@ -32,6 +32,18 @@ function cleanup(player, setTool)
   end
 end
 
+--- Whether a player standing at position can build at x, y. Anything further away gets built as a ghost
+---@param position MapPosition the player's position
+---@param build_distance number
+---@param x number
+---@param y number
+---@return boolean
+function can_reach(position, build_distance, x, y)
+  local dx = position.x - x
+  local dy = position.y - y
+  return dx * dx + dy * dy < build_distance * build_distance
+end
+
 ---@param position MapPosition
 ---@return {x: number, y: number}
 function to_tile_center(position)

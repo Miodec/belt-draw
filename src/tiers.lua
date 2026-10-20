@@ -1,5 +1,5 @@
 ---@alias BeltTier "normal"|"fast"|"express"|"turbo"
----@alias BeltTierData {name: BeltTier, tool: string, preview_tool: string, string: string, entities: {belt: string, underground_belt: string, splitter: string}, max_underground_distance: number, dummy: string}
+---@alias BeltTierData {name: BeltTier, tool: string, preview_tool: string, string: string, entities: {belt: string, underground_belt: string, splitter: string}, dummy: string}
 
 ---@type table<BeltTier, BeltTierData>
 local tiers = {
@@ -8,7 +8,6 @@ local tiers = {
     tool = "belt-draw",
     preview_tool = "belt-draw-preview",
     string = "belt-draw.tier-normal",
-    max_underground_distance = 4,
     dummy = "belt-draw-dummy-transport-belt",
     entities = {
       belt = "transport-belt",
@@ -21,7 +20,6 @@ local tiers = {
     tool = "belt-draw-fast",
     preview_tool = "belt-draw-fast-preview",
     string = "belt-draw.tier-fast",
-    max_underground_distance = 7,
     dummy = "belt-draw-dummy-fast-transport-belt",
     entities = {
       belt = "fast-transport-belt",
@@ -34,7 +32,6 @@ local tiers = {
     tool = "belt-draw-express",
     preview_tool = "belt-draw-express-preview",
     string = "belt-draw.tier-express",
-    max_underground_distance = 9,
     dummy = "belt-draw-dummy-express-transport-belt",
     entities = {
       belt = "express-transport-belt",
@@ -50,7 +47,6 @@ if script.active_mods["space-age"] then
     tool = "belt-draw-turbo",
     preview_tool = "belt-draw-turbo-preview",
     string = "belt-draw.tier-turbo",
-    max_underground_distance = 11,
     dummy = "belt-draw-dummy-turbo-transport-belt",
     entities = {
       belt = "turbo-transport-belt",
@@ -58,6 +54,14 @@ if script.active_mods["space-age"] then
       splitter = "turbo-splitter",
     }
   }
+end
+
+--- The most tiles this tier's undergrounds can cross, read from the game so it always matches the prototype
+--- (its max distance counts both ends, so the gap is one less)
+---@param tier BeltTier
+---@return integer
+function get_underground_reach(tier)
+  return prototypes.entity[tiers[tier].entities.underground_belt].max_underground_distance - 1
 end
 
 ---@param tool_name string
