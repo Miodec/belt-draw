@@ -100,6 +100,7 @@ return {
     -- like reachable ones, so water got an underground
     name = "out of reach water gets landfill, not an underground",
     setup = function(ctx)
+      h.ghosts_out_of_reach(ctx)
       h.water(ctx, 11, 13)
       ctx.player.teleport({ 0, 3.5 })
       h.give(ctx, "transport-belt", 20)
@@ -115,6 +116,31 @@ return {
           h.expect(ctx, position, "transport-belt", east, true)
           h.check(#ctx.surface.find_entities_filtered({ name = "tile-ghost", position = position }) > 0,
             "no landfill ghost at " .. position[1])
+        end
+      end)
+    ),
+  },
+  {
+    name = "out of reach water is left alone with out of reach ghosts off",
+    setup = function(ctx)
+      h.water(ctx, 11, 13)
+      ctx.player.teleport({ 0, 3.5 })
+      h.give(ctx, "transport-belt", 20)
+      h.give(ctx, "underground-belt", 10)
+      h.hold_tool(ctx)
+    end,
+    steps = h.steps(
+      h.drag(h.controls.draw, { 7.5, 0.5 }, { 14.5, 0.5 }),
+      h.run(function(ctx)
+        h.check_equal(0, #ctx.surface.find_entities_filtered({ name = "tile-ghost" }), "landfill ghosts")
+        h.check_equal(0, #ctx.surface.find_entities_filtered({ name = "entity-ghost" }), "ghosts")
+        for _, position in ipairs(h.row(7.5, 14.5)) do
+          if h.in_reach(ctx, position) then
+            h.expect(ctx, position, "transport-belt", east)
+          else
+            h.check_equal(0, #ctx.surface.find_entities_filtered({ position = position, type = { "transport-belt", "underground-belt" } }),
+              "belts at " .. position[1])
+          end
         end
       end)
     ),

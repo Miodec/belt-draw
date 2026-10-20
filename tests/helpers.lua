@@ -262,9 +262,28 @@ function helpers.preview_sprites()
   return sprites
 end
 
----@param sprites table<string, string>
+--- The opacity of each visible preview sprite, by position
+---@return table<string, number>
+function helpers.preview_opacities()
+  local opacities = {}
+  for _, object in pairs(rendering.get_all_objects("belt-draw")) do
+    if object.valid and object.type == "sprite" and object.visible then
+      local target = object.target
+      local position = target and (target.position or target)
+      if position and position.x then
+        local color = object.color --[[@as Color.struct]]
+        opacities[key(position.x, position.y)] = color.a
+      end
+    end
+  end
+  return opacities
+end
+
+--- Looks up a position in what preview_sprites or preview_opacities returned
+---@generic T
+---@param sprites table<string, T>
 ---@param position MapPosition
----@return string?
+---@return T?
 function helpers.sprite_at(sprites, position)
   return sprites[key(position[1], position[2])]
 end
@@ -322,6 +341,12 @@ function helpers.water(ctx, from_x, to_x)
   local tiles = {}
   for x = from_x, to_x do table.insert(tiles, { name = "water", position = { x, 0 } }) end
   ctx.surface.set_tiles(tiles)
+end
+
+--- Turn on building ghosts out of reach for the test player, the reset turns it off again
+---@param ctx TestContext
+function helpers.ghosts_out_of_reach(ctx)
+  settings.get_player_settings(ctx.player)["belt-draw-out-of-reach-ghosts"] = { value = true }
 end
 
 ---@param ctx TestContext

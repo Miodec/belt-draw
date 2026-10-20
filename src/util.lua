@@ -32,6 +32,13 @@ function cleanup(player, setTool)
   end
 end
 
+--- Whether out of reach nodes of an inventory drawing get built as ghosts (the player's setting), or are left out
+---@param player LuaPlayer
+---@return boolean
+function out_of_reach_ghosts(player)
+  return settings.get_player_settings(player)["belt-draw-out-of-reach-ghosts"].value --[[@as boolean]]
+end
+
 --- Whether a player standing at position can build at x, y. Anything further away gets built as a ghost
 ---@param position MapPosition the player's position
 ---@param build_distance number

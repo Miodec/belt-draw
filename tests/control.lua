@@ -105,6 +105,7 @@ local function reset()
   end
   ctx.player.clear_cursor()
   ctx.player.clear_items_inside()
+  settings.get_player_settings(ctx.player)["belt-draw-out-of-reach-ghosts"] = { value = false }
   -- other test players (multiplayer cases) may have drawings going too
   for _, player in pairs(game.players) do
     cleanup(player, false)

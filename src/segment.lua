@@ -4,7 +4,7 @@ local tiers = require("src.tiers")
 ---@alias BeltType "above"|"down"|"up"|"under"|"under_entity"|"blocked"|"above_connect"|"above_deconstruct"
 ---@alias Position {x: number, y: number}
 ---@alias NodeInfo {can_place: boolean, entity: LuaEntity|false, tile_blocks: boolean?, can_cover: boolean?}
----@alias Drawn {sprite: string?, orientation: number?, x: number?, y: number?} what the render object currently shows, writing to it is an api call so unchanged values are skipped
+---@alias Drawn {sprite: string?, orientation: number?, x: number?, y: number?, faded: boolean?} what the render object currently shows, writing to it is an api call so unchanged values are skipped
 ---@alias Node {x: number, y: number, direction: defines.direction, render: LuaRenderObject? , drawn: Drawn?, belt_type: BeltType|nil, deconstruct_entity: LuaEntity?}
 
 
@@ -453,10 +453,26 @@ end
 ---@return boolean
 function Segment:node_uses_alt(node, use_alt)
   if use_alt then return true end
+  if not out_of_reach_ghosts(self.player) then return false end
   local reach = self.reach
   if not reach then return false end
   return not can_reach(reach, reach.distance, node.x, node.y)
 end
+
+--- Whether a node is drawn at half opacity: out of reach and left out, while out of reach nodes don't become ghosts
+---@param node Node
+---@param use_alt boolean from Segment:uses_alt
+---@return boolean
+function Segment:node_faded(node, use_alt)
+  if use_alt or out_of_reach_ghosts(self.player) then return false end
+  local reach = self.reach
+  if not reach then return false end
+  return not can_reach(reach, reach.distance, node.x, node.y)
+end
+
+-- tints are premultiplied, so this is half opacity
+local FADED_TINT = { 0.5, 0.5, 0.5, 0.5 }
+local FULL_TINT = { 1, 1, 1, 1 }
 
 ---@param sprite_name string
 ---@param use_alt boolean from Segment:uses_alt, looked up once per update instead of per node
@@ -478,6 +494,16 @@ local function set_sprite(node, sprite)
   end
 end
 
+---@param node Node
+---@param faded boolean
+local function set_faded(node, faded)
+  node.drawn = node.drawn or {}
+  if (node.drawn.faded or false) ~= faded then
+    node.render.color = faded and FADED_TINT or FULL_TINT
+    node.drawn.faded = faded
+  end
+end
+
 --- Swap sprites to/from their alt versions, used when switching between normal and alt mode
 function Segment:apply_alt_sprites()
   local use_alt = self:uses_alt()
@@ -485,15 +511,19 @@ function Segment:apply_alt_sprites()
     if node.render and node.render.valid then
       local base_name = string.gsub(node.drawn and node.drawn.sprite or node.render.sprite, "%-alt$", "")
       set_sprite(node, with_alt(base_name, self:node_uses_alt(node, use_alt)))
+      set_faded(node, self:node_faded(node, use_alt))
     end
   end
 end
 
 ---@param node Node
 function Segment:render_anchor(node)
-  local sprite_name = with_alt("belt-draw-anchor", self:node_uses_alt(node, self:uses_alt()))
+  local use_alt = self:uses_alt()
+  local sprite_name = with_alt("belt-draw-anchor", self:node_uses_alt(node, use_alt))
+  local faded = self:node_faded(node, use_alt)
   local sprite = {
     sprite = sprite_name,
+    tint = faded and FADED_TINT or nil,
     x_scale = scale,
     y_scale = scale,
     visible = not get_state(self.player).hide_preview,
@@ -504,7 +534,7 @@ function Segment:render_anchor(node)
     time_to_live = 60 * 60 -- 1 minute should be plenty, protects against orphaned render objects if something goes wrong
   }
   node.render = rendering.draw_sprite(sprite)
-  node.drawn = { sprite = sprite_name, x = node.x, y = node.y }
+  node.drawn = { sprite = sprite_name, x = node.x, y = node.y, faded = faded }
 end
 
 local function get_sprite_name_for_belt_type(belt_type)
@@ -536,12 +566,14 @@ function Segment:render_node(node, use_alt, visible)
   if visible == nil then visible = self:shows_preview() end
 
   sprite_name = with_alt(sprite_name, self:node_uses_alt(node, use_alt))
+  local faded = self:node_faded(node, use_alt)
   ---@type number
   local orientation = node.direction * 0.0625 - 0.25
   ---@type Position
   local target = { x = node.x, y = node.y }
   local sprite = {
     sprite = sprite_name,
+    tint = faded and FADED_TINT or nil,
     x_scale = scale,
     y_scale = scale,
     target = target,
@@ -553,7 +585,7 @@ function Segment:render_node(node, use_alt, visible)
     time_to_live = 60 * 60 -- 1 minute should be plenty, protects against orphaned render objects if something goes wrong
   }
   node.render = rendering.draw_sprite(sprite)
-  node.drawn = { sprite = sprite_name, orientation = orientation, x = node.x, y = node.y }
+  node.drawn = { sprite = sprite_name, orientation = orientation, x = node.x, y = node.y, faded = faded }
 end
 
 --- Hidden until the player starts dragging, the preview tool already shows that belt
@@ -584,6 +616,7 @@ function Segment:update_render(node, use_alt, visible)
     node.drawn.orientation = orientation
   end
   set_sprite(node, with_alt(get_sprite_name_for_belt_type(node.belt_type), self:node_uses_alt(node, use_alt)))
+  set_faded(node, self:node_faded(node, use_alt))
 end
 
 ---@param divergence_index number?

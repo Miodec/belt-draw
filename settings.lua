@@ -7,6 +7,13 @@ data:extend({
     order = "a",
   },
   {
+    type = "bool-setting",
+    name = "belt-draw-out-of-reach-ghosts",
+    setting_type = "runtime-per-user",
+    default_value = false,
+    order = "b",
+  },
+  {
     -- turns the main menu into the test runner, see tests/run.sh. Hidden, it's only set by the test runner
     type = "bool-setting",
     name = "belt-draw-run-tests",

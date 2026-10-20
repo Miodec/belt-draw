@@ -25,7 +25,7 @@ Reverse dragging with a Belt Draw tool, which marks the belts in the area for re
 _Avoid_: erasing
 
 **Out of reach**:
-Beyond the character's build distance; that part of a drawing becomes blueprint drawing.
+Beyond the character's build distance. With the out of reach ghosts setting on, that part of a drawing becomes blueprint drawing; off (the default), it is left out and its preview is faded.
 
 ## Shape
 

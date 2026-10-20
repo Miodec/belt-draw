@@ -412,6 +412,7 @@ function place_using_inventory(player, segments)
   local undo_count = player.undo_redo_stack.get_undo_item_count()
   ---@type RotationRecord[]
   local rotations = {}
+  local ghosts_out_of_reach = out_of_reach_ghosts(player)
   -- real belts get built after the ghosts: a blueprint can't join an existing undo item, but create_entity can join its one
   ---@type table[]
   local builds = {}
@@ -427,7 +428,7 @@ function place_using_inventory(player, segments)
 
       if not name then
         -- alt mode places these with the blueprint too, out of reach nodes work the same
-        if node.belt_type == "blocked" and not can_reach(player.position, player.build_distance, node.x, node.y) then
+        if ghosts_out_of_reach and node.belt_type == "blocked" and not can_reach(player.position, player.build_distance, node.x, node.y) then
           table.insert(ghost_nodes, node)
         end
         goto continue
@@ -442,13 +443,15 @@ function place_using_inventory(player, segments)
 
       local in_reach = can_reach(player.position, player.build_distance, node.x, node.y)
 
+      -- out of reach nodes become ghosts, or are left out when the setting is off
+      local skip = not in_reach and not ghosts_out_of_reach
       if not in_reach then
         build_ghosts = true
       end
 
       -- the same belt is already there: rotate it if needed, rather than building it again
       -- (a fast replace would give the old belt back, and drop what's on it)
-      if not build_ghosts and node.belt_type == "above" then
+      if not build_ghosts and not skip and node.belt_type == "above" then
         local existing = find_same_belt(player.surface, name, node)
         if existing then
           if node.direction then rotate_to(existing, node.direction, player, rotations) end
@@ -473,7 +476,9 @@ function place_using_inventory(player, segments)
         entity.belt_to_ground_type = "output"
       end
 
-      if build_ghosts then
+      if skip then
+        -- left out, the cannot reach text below says so
+      elseif build_ghosts then
         -- a ghost created with fast replace takes the real belt underneath away (into the inventory, even when out of reach).
         -- the blueprint marks existing belts for upgrade/rotation/deconstruction instead, like the game does
         table.insert(ghost_nodes, node)

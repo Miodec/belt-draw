@@ -119,6 +119,7 @@ return {
     name = "walking while drawing updates which nodes are out of reach",
     timeout = 60 * 30,
     setup = function(ctx)
+      h.ghosts_out_of_reach(ctx)
       ctx.player.teleport({ 0, 3.5 })
       with_belts(ctx)
     end,
@@ -141,6 +142,43 @@ return {
       h.run(function(ctx)
         for _, position in ipairs(h.row(-9.5, 12.5)) do
           h.expect(ctx, position, "transport-belt", east, not h.in_reach(ctx, position))
+        end
+      end)
+    ),
+  },
+  {
+    name = "walking while drawing updates which nodes are faded, with out of reach ghosts off",
+    timeout = 60 * 30,
+    setup = function(ctx)
+      ctx.player.teleport({ 0, 3.5 })
+      with_belts(ctx)
+    end,
+    steps = h.steps(
+      h.move_to({ -9.5, 0.5 }),
+      h.press(h.controls.draw),
+      h.move_to({ 12.5, 0.5 }),
+      -- walk to the right, the left end goes out of reach and the right end comes into reach
+      h.run(function(ctx) ctx.player.teleport({ 8, 3.5 }) end),
+      h.wait(2),
+      h.run(function(ctx)
+        local sprites = h.preview_sprites()
+        local opacities = h.preview_opacities()
+        for _, position in ipairs(h.row(-9.5, 12.5)) do
+          h.check_equal("belt-draw-above", h.sprite_at(sprites, position), "preview at " .. position[1])
+          local opacity = h.in_reach(ctx, position) and 1 or 0.5
+          h.check_equal(opacity, h.sprite_at(opacities, position), "preview opacity at " .. position[1])
+        end
+      end),
+      h.release(h.controls.draw),
+      h.wait(10),
+      h.run(function(ctx)
+        for _, position in ipairs(h.row(-9.5, 12.5)) do
+          if h.in_reach(ctx, position) then
+            h.expect(ctx, position, "transport-belt", east)
+          else
+            h.expect_none(ctx, position, "transport-belt")
+            h.expect_none(ctx, position, "transport-belt", true)
+          end
         end
       end)
     ),

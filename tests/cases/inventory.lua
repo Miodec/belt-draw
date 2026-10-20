@@ -119,6 +119,7 @@ return {
     name = "out of reach nodes become ghosts and show the blue preview",
     timeout = 60 * 30,
     setup = function(ctx)
+      h.ghosts_out_of_reach(ctx)
       ctx.player.teleport({ 0, 3.5 })
       h.give(ctx, "transport-belt", 50)
       h.hold_tool(ctx)
@@ -141,6 +142,42 @@ return {
       h.run(function(ctx)
         for _, position in ipairs(h.row(-13.5, 13.5)) do
           h.expect(ctx, position, "transport-belt", east, not h.in_reach(ctx, position))
+        end
+      end)
+    ),
+  },
+  {
+    name = "out of reach nodes are left out and show a faded preview",
+    timeout = 60 * 30,
+    setup = function(ctx)
+      ctx.player.teleport({ 0, 3.5 })
+      h.give(ctx, "transport-belt", 50)
+      h.hold_tool(ctx)
+    end,
+    steps = h.steps(
+      h.move_to({ -13.5, 0.5 }),
+      h.press(h.controls.draw),
+      h.move_to({ 13.5, 0.5 }),
+      h.wait(2),
+      h.run(function(ctx)
+        local sprites = h.preview_sprites()
+        local opacities = h.preview_opacities()
+        for _, position in ipairs(h.row(-13.5, 13.5)) do
+          h.check_equal("belt-draw-above", h.sprite_at(sprites, position), "preview at " .. position[1])
+          local alpha = h.in_reach(ctx, position) and 1 or 0.5
+          h.check_equal(alpha, h.sprite_at(opacities, position), "preview opacity at " .. position[1])
+        end
+      end),
+      h.release(h.controls.draw),
+      h.wait(10),
+      h.run(function(ctx)
+        for _, position in ipairs(h.row(-13.5, 13.5)) do
+          if h.in_reach(ctx, position) then
+            h.expect(ctx, position, "transport-belt", east)
+          else
+            h.expect_none(ctx, position, "transport-belt")
+            h.expect_none(ctx, position, "transport-belt", true)
+          end
         end
       end)
     ),

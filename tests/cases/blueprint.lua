@@ -123,6 +123,36 @@ return {
     ),
   },
   {
+    -- the out of reach ghosts setting is only about inventory drawing
+    name = "blueprint drawing (shift) builds ghosts out of reach, with out of reach ghosts off",
+    timeout = 60 * 30,
+    setup = function(ctx)
+      ctx.player.teleport({ 0, 3.5 })
+      h.hold_tool(ctx)
+    end,
+    steps = h.steps(
+      h.move_to({ -13.5, 0.5 }),
+      h.press(h.controls.shift_draw),
+      h.move_to({ 13.5, 0.5 }),
+      h.wait(2),
+      h.run(function(ctx)
+        local sprites = h.preview_sprites()
+        local opacities = h.preview_opacities()
+        for _, position in ipairs(h.row(-13.5, 13.5)) do
+          h.check_equal("belt-draw-above-alt", h.sprite_at(sprites, position), "preview at " .. position[1])
+          h.check_equal(1, h.sprite_at(opacities, position), "preview opacity at " .. position[1])
+        end
+      end),
+      h.release(h.controls.shift_draw),
+      h.wait(10),
+      h.run(function(ctx)
+        for _, position in ipairs(h.row(-13.5, 13.5)) do
+          h.expect(ctx, position, "transport-belt", east, true)
+        end
+      end)
+    ),
+  },
+  {
     name = "blueprint drawing (shift) places landfill under belts over water",
     setup = function(ctx)
       h.water(ctx, 0, 1)
