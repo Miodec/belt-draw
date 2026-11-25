@@ -54,7 +54,7 @@ _Avoid_: waypoint, checkpoint
 ## Tools
 
 **Tier**:
-A belt level the tools build: yellow, fast, express or turbo.
+A belt level the tools build: yellow, fast, express, turbo, or a belt from another mod.
 _Avoid_: level, speed, normal (for yellow)
 
 **Preview tool**:

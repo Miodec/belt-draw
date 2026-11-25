@@ -1,3 +1,5 @@
+local tiers = require("src.tiers")
+
 script.on_event(defines.events.on_player_cursor_stack_changed, function(event)
   local player = game.get_player(event.player_index)
   if not player then
@@ -24,7 +26,7 @@ script.on_event(defines.events.on_player_cursor_stack_changed, function(event)
       if tier and state.current_tier ~= tier then
         -- the checker reads the nested locale table as a LuaGuiElement
         ---@diagnostic disable-next-line: missing-fields
-        local text = { "belt-draw.tier-updated", { "belt-draw.tier-" .. tier } } ---@type LocalisedString
+        local text = { "belt-draw.tier-updated", { tiers[tier].string } } ---@type LocalisedString
         player.create_local_flying_text {
           text = text,
           position = player.position,

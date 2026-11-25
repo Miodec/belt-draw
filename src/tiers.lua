@@ -1,5 +1,6 @@
----@alias BeltTier "normal"|"fast"|"express"|"turbo"
----@alias BeltTierData {name: BeltTier, tool: string, preview_tool: string, string: string, entities: {belt: string, underground_belt: string, splitter: string}, dummy: string}
+--- the base game tiers, or the belt name for a tier from another mod
+---@alias BeltTier "normal"|"fast"|"express"|"turbo"|string
+---@alias BeltTierData {name: BeltTier, tool: string, preview_tool: string, string: string, entities: {belt: string, underground_belt: string, splitter: string?}, dummy: string?}
 
 ---@type table<BeltTier, BeltTierData>
 local tiers = {
@@ -54,6 +55,38 @@ if script.active_mods["space-age"] then
       splitter = "turbo-splitter",
     }
   }
+end
+
+-- belts from other mods that got tools in prototypes/tools/modded.lua, after the base game tiers from slowest to fastest
+---@type {speed: number, tier: BeltTierData}[]
+local modded_tiers = {}
+for name, belt in pairs(prototypes.get_entity_filtered({ { filter = "type", type = "transport-belt" } })) do
+  local underground_belt = belt.related_underground_belt
+  if not belt.hidden and underground_belt and prototypes.item["belt-draw-" .. name .. "-preview"] then
+    -- belts don't link to their splitter, so go by the base game naming
+    local splitter = prototypes.entity[(string.gsub(name, "transport%-belt", "splitter"))]
+    table.insert(modded_tiers, {
+      speed = belt.belt_speed or 0,
+      tier = {
+        name = name,
+        tool = "belt-draw-" .. name,
+        preview_tool = "belt-draw-" .. name .. "-preview",
+        string = "entity-name." .. name,
+        entities = {
+          belt = name,
+          underground_belt = underground_belt.name,
+          splitter = splitter and splitter.type == "splitter" and splitter.name or nil,
+        }
+      }
+    })
+  end
+end
+table.sort(modded_tiers, function(a, b)
+  if a.speed ~= b.speed then return a.speed < b.speed end
+  return a.tier.name < b.tier.name
+end)
+for _, modded in ipairs(modded_tiers) do
+  tiers[modded.tier.name] = modded.tier
 end
 
 --- The most tiles this tier's undergrounds can cross, read from the game so it always matches the prototype
